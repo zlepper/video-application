@@ -9,6 +9,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Files", "Files", "{E6B66AFB-90F3-4223-A840-C0E4CEE95A24}"
 	ProjectSection(SolutionItems) = preProject
 		docker-compose.yml = docker-compose.yml
+		.gitignore = .gitignore
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VideoApplication.Api.Shared", "VideoApplication.Api.Shared\VideoApplication.Api.Shared.csproj", "{785A2D36-483D-4C01-A209-3631F47F3768}"
