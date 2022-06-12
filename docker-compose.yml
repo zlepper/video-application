@@ -1,0 +1,31 @@
+﻿version: '3'
+
+services:
+  
+  rabbit:
+    image: rabbitmq:3.9-management
+    hostname: rabbit
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: passw0rd
+      RABBITMQ_DEFAULT_VHOST: dev
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    volumes:
+      - rabbitmq:/var/lib/rabbitmq
+  
+  cockroach:
+    image: cockroachdb/cockroach:v22.1.1
+    hostname: cockroach
+    ports:
+      - "26257:26257"
+      - "8080:8080"
+    volumes:
+      - cockroach:/cockroach/cockroach-data
+    entrypoint: ["cockroach", "start-single-node", "--insecure"]
+
+
+volumes:
+  rabbitmq:
+  cockroach:
