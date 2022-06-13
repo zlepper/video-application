@@ -1,0 +1,12 @@
+body {
+  --theme-color: #9b59b6;
+  --highlight-theme-color: #8e44ad;
+  --theme-text-color: #fafafa;
+  --top-bar-color: #0e1111;
+  --top-bar-text-color: #fefefe;
+  --background-color: #fafafa;
+  --border-color: #ebebeb;
+  margin: 0;
+  overflow: hidden;
+  background-color: var(--background-color);
+}

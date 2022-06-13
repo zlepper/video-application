@@ -24,6 +24,12 @@ services:
     volumes:
       - cockroach:/cockroach/cockroach-data
     entrypoint: ["cockroach", "start-single-node", "--insecure"]
+    
+  redis:
+    hostname: redis
+    image: redis:7.0.1
+    ports:
+      - "6379:6379"
 
 
 volumes:
