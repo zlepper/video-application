@@ -7,6 +7,7 @@ using VideoApplication.Api.Controllers.Responses;
 using VideoApplication.Api.Database;
 using VideoApplication.Api.Database.Models;
 using VideoApplication.Api.Exceptions;
+using VideoApplication.Api.Extensions;
 using VideoApplication.Api.Services;
 
 namespace VideoApplication.Api.Controllers;
@@ -85,9 +86,13 @@ public class AuthController : ControllerBase
     }
 
     [Authorize]
-    public UserInfo WhoAmI()
+    public async Task<UserInfo> WhoAmI()
     {
-        throw new NotImplementedException();
+        var user = await _userManager.FindByIdAsync(User.GetId());
+
+        var validated = await _userManager.IsEmailConfirmedAsync(user);
+
+        return new UserInfo("", user.Name, validated, user.Id);
     }
 
 

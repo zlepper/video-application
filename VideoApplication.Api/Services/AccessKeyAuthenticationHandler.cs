@@ -29,43 +29,6 @@ public class AccessKeyAuthenticationHandler : AuthenticationHandler<Authenticati
     }
 }
 
-public record CachedClaimsPrincipal(List<CachedClaim> Claims)
-{
-    private ClaimsPrincipal ToPrincipal()
-    {
-        var claimIdentity = new ClaimsIdentity(Claims.Select(c => c.ToClaim()));
-        return new ClaimsPrincipal(claimIdentity);
-    }
-
-    public static implicit operator ClaimsPrincipal(CachedClaimsPrincipal p) => p.ToPrincipal();
-    public static implicit operator CachedClaimsPrincipal(ClaimsPrincipal p) => new(p.Claims.Select(CachedClaim.Create).ToList());
-}
-
-public record CachedClaim(string Issuer, Dictionary<string,string> Properties, string Type, string Value, string OriginalIssuer, string ValueType)
-{
-    public static CachedClaim Create(Claim claim)
-    {
-        return new(claim.Issuer, claim.Properties.ToDictionary(p => p.Key, p => p.Value), claim.Type, claim.Value,
-            claim.OriginalIssuer, claim.ValueType);
-    }
-
-    public Claim ToClaim()
-    {
-        var c = new Claim(Type, Value, ValueType, Issuer, OriginalIssuer);
-        foreach (var property in Properties)
-        {
-            c.Properties[property.Key] = property.Value;
-        }
-
-        return c;
-    }
-}
-
-public record CachedAccessKey(Guid Id, string Value, Guid UserId)
-{
-    public static implicit operator CachedAccessKey(AccessKey ak) => new(ak.Id, ak.Value, ak.UserId);
-}
-
 public class AccessKeyAuthenticationHelper
 {
     private readonly ILogger<AccessKeyAuthenticationHandler> _logger;
@@ -109,6 +72,7 @@ public class AccessKeyAuthenticationHelper
 
             return a;
         }, request.HttpContext.RequestAborted);
+        
         if (accessKey == null)
         {
             _logger.LogInformation("Access key was not found: {hashString}", hashString);
@@ -144,4 +108,43 @@ public class AccessKeyAuthenticationHelper
 
         return null;
     }
+    
+    
+    public record CachedClaimsPrincipal(List<CachedClaim> Claims)
+    {
+        private ClaimsPrincipal ToPrincipal()
+        {
+            var claimIdentity = new ClaimsIdentity(Claims.Select(c => c.ToClaim()));
+            return new ClaimsPrincipal(claimIdentity);
+        }
+
+        public static implicit operator ClaimsPrincipal(CachedClaimsPrincipal p) => p.ToPrincipal();
+        public static implicit operator CachedClaimsPrincipal(ClaimsPrincipal p) => new(p.Claims.Select(CachedClaim.Create).ToList());
+    }
+
+    public record CachedClaim(string Issuer, Dictionary<string,string> Properties, string Type, string Value, string OriginalIssuer, string ValueType)
+    {
+        public static CachedClaim Create(Claim claim)
+        {
+            return new(claim.Issuer, claim.Properties.ToDictionary(p => p.Key, p => p.Value), claim.Type, claim.Value,
+                claim.OriginalIssuer, claim.ValueType);
+        }
+
+        public Claim ToClaim()
+        {
+            var c = new Claim(Type, Value, ValueType, Issuer, OriginalIssuer);
+            foreach (var property in Properties)
+            {
+                c.Properties[property.Key] = property.Value;
+            }
+
+            return c;
+        }
+    }
+
+    public record CachedAccessKey(Guid Id, string Value, Guid UserId)
+    {
+        public static implicit operator CachedAccessKey(AccessKey ak) => new(ak.Id, ak.Value, ak.UserId);
+    }
+
 }
