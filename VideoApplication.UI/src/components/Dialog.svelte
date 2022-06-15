@@ -44,7 +44,7 @@
 		grid-template-areas: '_ header-title header-close' 'body body body' 'footer footer footer';
 		background-color: var(--background-color);
 		border: 1px solid var(--theme-color);
-		width: 20em;
+		width: 25em;
 		box-shadow: 0 0 15px transparentize($black, 0.7);
 		top: 50%;
 		left: 50%;

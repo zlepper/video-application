@@ -31,6 +31,9 @@ public static class ServiceCollectionExtensions
         services.AddIdentity<User, Role>(i =>
             {
                 i.User.RequireUniqueEmail = true;
+                i.Password.RequireDigit = false;
+                i.Password.RequiredUniqueChars = 1;
+                i.Password.RequireNonAlphanumeric = false;
             })
             .AddEntityFrameworkStores<VideoApplicationDbContext>()
             .AddDefaultTokenProviders();

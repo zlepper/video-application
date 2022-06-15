@@ -25,7 +25,7 @@ $black: #0e1111;
     padding: 0 10px;
     transition: border-bottom-color 100ms ease-in-out;
     border-radius: 3px;
-    background-color: var(--background-color);
+    background-color: var(--form-input-color);
 
     &:focus-visible {
       outline: none;
