@@ -1,4 +1,6 @@
-﻿namespace VideoApplication.Api.Database.Models;
+﻿using NodaTime;
+
+namespace VideoApplication.Api.Database.Models;
 
 public class AccessKey
 {
@@ -7,7 +9,7 @@ public class AccessKey
     // Hashed
     public string Value { get; set; } = null!; 
     
-    public DateTimeOffset LoginDate { get; set; }
+    public Instant LoginDate { get; set; }
     
     public User User { get; set; } = null!;
     public Guid UserId { get; set; }

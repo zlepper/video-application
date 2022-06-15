@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -14,18 +15,24 @@ using VideoApplication.Api.Database.Models;
 namespace VideoApplication.Api.Services;
 
 
-public class AccessKeyAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
+public class AccessKeyAuthenticationHandler : CookieAuthenticationHandler
 {
     private readonly AccessKeyAuthenticationHelper _helper;
 
-    public AccessKeyAuthenticationHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock, AccessKeyAuthenticationHelper helper) : base(options, logger, encoder, clock)
+    public AccessKeyAuthenticationHandler(IOptionsMonitor<CookieAuthenticationOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock, AccessKeyAuthenticationHelper helper) : base(options, logger, encoder, clock)
     {
         _helper = helper;
     }
 
-    protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+    protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        return _helper.HandleAuthenticateAsync(Scheme.Name, Request);
+        var result = await _helper.HandleAuthenticateAsync(Scheme.Name, Request);
+        if (result.None)
+        {
+            return await base.HandleAuthenticateAsync();
+        }
+
+        return result;
     }
 }
 
@@ -33,12 +40,12 @@ public class AccessKeyAuthenticationHelper
 {
     private readonly ILogger<AccessKeyAuthenticationHandler> _logger;
     private readonly VideoApplicationDbContext _context;
-    private readonly ICache<CachedAccessKey?> _accessKeyCache;
+    private readonly ICache<Guid> _accessKeyCache;
     private readonly UserManager<User> _userManager;
     private readonly IUserClaimsPrincipalFactory<User> _claimsPrincipalFactory;
     private readonly ICache<CachedClaimsPrincipal> _principalCache;
 
-    public AccessKeyAuthenticationHelper(ILogger<AccessKeyAuthenticationHandler> logger, VideoApplicationDbContext context, ICache<CachedAccessKey?> accessKeyCache, UserManager<User> userManager, IUserClaimsPrincipalFactory<User> claimsPrincipalFactory, ICache<CachedClaimsPrincipal> principalCache)
+    public AccessKeyAuthenticationHelper(ILogger<AccessKeyAuthenticationHandler> logger, VideoApplicationDbContext context, ICache<Guid> accessKeyCache, UserManager<User> userManager, IUserClaimsPrincipalFactory<User> claimsPrincipalFactory, ICache<CachedClaimsPrincipal> principalCache)
     {
         _logger = logger;
         _context = context;
@@ -50,7 +57,7 @@ public class AccessKeyAuthenticationHelper
 
     public async Task<AuthenticateResult> HandleAuthenticateAsync(string schemeName, HttpRequest request)
     {
-        var token = GetAccessKeyToken(schemeName, request);
+        var token = GetAccessKeyToken(request);
 
         if (string.IsNullOrWhiteSpace(token))
         {
@@ -62,29 +69,23 @@ public class AccessKeyAuthenticationHelper
         var hashString = Convert.ToHexString(hash);
 
 
-        var accessKey = await _accessKeyCache.Get(hashString, TimeSpan.FromMinutes(5), async () =>
+        var userId = await _accessKeyCache.Get(hashString, TimeSpan.FromMinutes(5), async () =>
         {
-            var a = await _context.AccessKeys.FirstOrDefaultAsync(ak => ak.Value == hashString);
-            if (a == null)
-            {
-                return null;
-            }
-
-            return a;
+            return await _context.AccessKeys.Where(ak => ak.Value == hashString)
+                    .Select(ak => ak.UserId)
+                    .FirstOrDefaultAsync();
         }, request.HttpContext.RequestAborted);
         
-        if (accessKey == null)
+        if (userId == default)
         {
             _logger.LogInformation("Access key was not found: {hashString}", hashString);
             return AuthenticateResult.Fail("AccessKey not found");
         }
 
-        var principal = await _principalCache.Get(accessKey.UserId.ToString(), TimeSpan.FromMinutes(5), async () =>
+        var principal = await _principalCache.Get(userId.ToString(), TimeSpan.FromMinutes(5), async () =>
         {
-            var user = await _userManager.FindByIdAsync(accessKey.UserId.ToString());
-            var claimsPrincipal = await _claimsPrincipalFactory.CreateAsync(user);
-
-            return claimsPrincipal;
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            return await _claimsPrincipalFactory.CreateAsync(user);
         });
 
         var ticket = new AuthenticationTicket(principal, schemeName);
@@ -92,7 +93,7 @@ public class AccessKeyAuthenticationHelper
         return AuthenticateResult.Success(ticket);
     }
 
-    private static string? GetAccessKeyToken(string schemeName, HttpRequest request)
+    private static string? GetAccessKeyToken(HttpRequest request)
     {
         var authenticationHeaderValue = request.GetTypedHeaders().Get<AuthenticationHeaderValue>(HeaderNames.Authorization);
 
@@ -101,7 +102,7 @@ public class AccessKeyAuthenticationHelper
             return null;
         }
 
-        if (authenticationHeaderValue.Scheme == schemeName)
+        if (authenticationHeaderValue.Scheme.Equals("bearer", StringComparison.OrdinalIgnoreCase))
         {
             return authenticationHeaderValue.Parameter;
         }
@@ -114,8 +115,9 @@ public class AccessKeyAuthenticationHelper
     {
         private ClaimsPrincipal ToPrincipal()
         {
-            var claimIdentity = new ClaimsIdentity(Claims.Select(c => c.ToClaim()));
-            return new ClaimsPrincipal(claimIdentity);
+            var identity = new ClaimsIdentity("AccessKey");
+            identity.AddClaims(Claims.Select(c => c.ToClaim()));
+            return new ClaimsPrincipal(identity);
         }
 
         public static implicit operator ClaimsPrincipal(CachedClaimsPrincipal p) => p.ToPrincipal();

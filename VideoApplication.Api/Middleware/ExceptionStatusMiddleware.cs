@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc.Infrastructure;
 
 namespace VideoApplication.Api.Middleware;
 
-public class ExceptionStatusMiddleware
+public class ExceptionStatusMiddleware : IMiddleware
 {
     private readonly ILogger<ExceptionStatusMiddleware> _logger;
 

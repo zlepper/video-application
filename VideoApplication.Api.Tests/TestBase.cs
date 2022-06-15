@@ -1,22 +1,17 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 using Rebus.Bus;
 using Rebus.TestHelpers;
 using VideoApplication.Api.Database;
-using VideoApplication.Api.Database.Models;
 using VideoApplication.Api.Extensions;
 
 namespace VideoApplication.Api.Tests;
 
 public abstract class TestBase
 {
-    private SqliteConnection? _dbConnection;
-
     private ServiceProvider CreateServiceProvider()
     {
         var services = new ServiceCollection();
@@ -51,6 +46,8 @@ public abstract class TestBase
     
     protected IServiceProvider RootServiceProvider => _serviceProvider ?? throw new Exception("ServiceProvider is not initialized");
     protected IServiceProvider ServiceProvider => _serviceScope?.ServiceProvider ?? throw new Exception("ServiceProvider is not initialized");
+
+    protected VideoApplicationDbContext DbContext => ServiceProvider.GetRequiredService<VideoApplicationDbContext>();
     
     
     [SetUp]
@@ -63,29 +60,29 @@ public abstract class TestBase
     private void ConfigureDbContext<T>(IServiceCollection services)
         where T : DbContext
     {
-        var databaseName = Guid.NewGuid().ToString();
-        var connectionString = $"DataSource={databaseName};Mode=Memory;Cache=Shared";
-        _dbConnection = new SqliteConnection(connectionString);
-        _dbConnection.Open();
+        var databaseName = $"TestDb{Guid.NewGuid():N}";
+        var connectionString = $"Host=localhost;Port=26257;Database={databaseName};Username=root;Password=root;";
 
-        services.AddDbContext<T>(options =>
-        {
-            options.UseSqlite(connectionString)
-                .EnableSensitiveDataLogging();
-        });
+        services.AddVideoApplicationDbContext(connectionString, (db, _) => db.EnableSensitiveDataLogging());
+        services.AddSingleton(new TestDatabaseName(databaseName, connectionString));
     }
+
+    private record TestDatabaseName(string DatabaseName, string ConnectionString);
 
     [TearDown]
     public void Teardown()
     {
-        if (_dbConnection != null)
-        {
-            _dbConnection.Dispose();
-            _dbConnection = null;
-        }
-
         if (_serviceScope != null)
         {
+            var name = _serviceScope.ServiceProvider.GetRequiredService<TestDatabaseName>();
+            using (var conn = new NpgsqlConnection(name.ConnectionString))
+            {
+                conn.Open();
+                using var command = conn.CreateCommand();
+                command.CommandText = $@"DROP DATABASE ""{name.DatabaseName}"" CASCADE;";
+                command.ExecuteNonQuery();
+            }
+            
             _serviceScope.Dispose();
             _serviceScope = null;
         }

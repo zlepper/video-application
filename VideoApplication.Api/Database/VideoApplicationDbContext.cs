@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using VideoApplication.Api.Database.Models;
+using VideoApplication.Api.Extensions;
 
 namespace VideoApplication.Api.Database;
 
@@ -25,7 +26,7 @@ public class VideoApplicationDbContext : IdentityDbContext<User, Role, Guid>
                 .HasForeignKey(k => k.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            accessKey.HasIndex(k => k.Value);
+            accessKey.HasIndex(k => k.Value).IncludeProperties(p => p.UserId);
         });
     }
 }

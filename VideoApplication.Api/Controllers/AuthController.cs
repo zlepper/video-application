@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using NodaTime;
 using VideoApplication.Api.Controllers.Responses;
 using VideoApplication.Api.Database;
 using VideoApplication.Api.Database.Models;
@@ -13,6 +14,7 @@ using VideoApplication.Api.Services;
 namespace VideoApplication.Api.Controllers;
 
 [ApiController]
+[Route("api/auth")]
 public class AuthController : ControllerBase
 {
     private readonly ILogger<AuthController> _logger;
@@ -31,6 +33,7 @@ public class AuthController : ControllerBase
         _clock = clock;
     }
 
+    [HttpPost("login")]
     [AllowAnonymous]
     public async Task<UserInfo> Login(LoginRequest request)
     {
@@ -53,6 +56,7 @@ public class AuthController : ControllerBase
         }
     }
 
+    [HttpPost("signup")]
     [AllowAnonymous]
     public async Task<UserInfo> Signup(SignupRequest request)
     {
@@ -85,6 +89,7 @@ public class AuthController : ControllerBase
         }
     }
 
+    [HttpGet("who-am-i")]
     [Authorize]
     public async Task<UserInfo> WhoAmI()
     {
@@ -92,7 +97,7 @@ public class AuthController : ControllerBase
 
         var validated = await _userManager.IsEmailConfirmedAsync(user);
 
-        return new UserInfo("", user.Name, validated, user.Id);
+        return new UserInfo("<Redacted>", user.Name, validated, user.Id);
     }
 
 
@@ -113,7 +118,7 @@ public class AuthController : ControllerBase
         {
             Id = Guid.NewGuid(),
             UserId = user.Id,
-            LoginDate = _clock.Now,
+            LoginDate = _clock.GetCurrentInstant(),
             Value = hashedString
         };
         _context.AccessKeys.Add(ak);

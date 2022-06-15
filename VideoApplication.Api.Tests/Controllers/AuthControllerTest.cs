@@ -41,7 +41,7 @@ public class AuthControllerTest : TestBase<AuthController>
                 {
                     {
                         HeaderNames.Authorization,
-                        new AuthenticationHeaderValue("AccessKey", loginResponse.AccessKey).ToString()
+                        new AuthenticationHeaderValue("Bearer", loginResponse.AccessKey).ToString()
                     }
                 }
             }

@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Microsoft.OpenApi.Models;
 using VideoApplication.Api.Database;
 using VideoApplication.Api.Database.Models;
 using VideoApplication.Api.Extensions;
@@ -20,9 +22,35 @@ public class Startup
     public void ConfigureServices(IServiceCollection services)
     {
         services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+        // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         services.AddEndpointsApiExplorer();
-        services.AddSwaggerGen();
+        services.AddSwaggerGen(options =>
+        {
+            options.SchemaGeneratorOptions.SupportNonNullableReferenceTypes = true;
+            options.SchemaGeneratorOptions.UseInlineDefinitionsForEnums = true;
+            options.SwaggerGeneratorOptions.DescribeAllParametersInCamelCase = true;
+            
+            options.AddSecurityDefinition("AccessKeyAuth", new OpenApiSecurityScheme()
+            {
+                Name = "AccessKey",
+                In = ParameterLocation.Header,
+                Type = SecuritySchemeType.Http,
+                Scheme = "bearer",
+            });
+            
+            options.AddSecurityRequirement(new OpenApiSecurityRequirement()
+            {
+                {new OpenApiSecurityScheme()
+                {
+                    Reference = new OpenApiReference()
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "AccessKeyAuth",
+                    },
+                }, Array.Empty<string>()}
+            });
+            
+        });
         services.AddSingleton<ExceptionStatusMiddleware>();
         services.AddStackExchangeRedisCache(o =>
         {
@@ -32,13 +60,12 @@ public class Startup
 
         var connectionString = _configuration.GetConnectionString("DefaultConnection");
 
-        services.AddDbContext<VideoApplicationDbContext>(o =>
-        {
-            o.UseNpgsql(connectionString);
-        });
+        services.AddVideoApplicationDbContext(connectionString);
         
         services.ConfigureRebus(_configuration, RouteName.Api);
-        
+
+        services.AddApplicationServices();
+
     }
 
     public void Configure(IApplicationBuilder app)
@@ -47,8 +74,12 @@ public class Startup
         // Configure the HTTP request pipeline.
         if (environment.IsDevelopment())
         {
-            app.UseSwagger();
-            app.UseSwaggerUI();
+            app.UseSwagger(c => { c.RouteTemplate = "api-docs/{documentName}/swagger.json"; });
+            app.UseSwaggerUI(o =>
+            {
+                o.ConfigObject.PersistAuthorization = true;
+                o.RoutePrefix = "api-docs";
+            });
         }
 
         app.UseHttpsRedirection();
