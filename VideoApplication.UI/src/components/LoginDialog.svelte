@@ -1,6 +1,10 @@
 <script lang="ts">
-	import Dialog from './Dialog.svelte';
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher } from "svelte";
+	import { doLogin, doSignup, WellKnownAuthErrorCodes } from "../services/auth-client";
+	import type { FailedHttpResponse } from "../services/http-client";
+	import { ErrorKind } from "../services/http-client";
+	import { authStateStore } from "../stores/auth-state-store";
+	import Dialog from "./Dialog.svelte";
 
 	export let dialogSource: HTMLElement | null;
 
@@ -8,25 +12,81 @@
 
 	const dispatcher = createEventDispatcher();
 
-	let email = '';
-	let password = '';
+	let loginEmail = '';
+	let loginPassword = '';
+	let signupEmail = '';
+	let signupPassword = '';
 	let repeatPassword = '';
 	let name = '';
 
-	$: loginIsValid = !!email && !!password;
-	$: signupIsValid = !!email && !!password && password === repeatPassword && !!name;
-	$: passwordNotRepeated = password.length > 0 && password !== repeatPassword;
+	$: loginIsValid = !!loginEmail && !!loginPassword;
+	$: signupIsValid =
+		!!signupEmail && !!signupPassword && signupPassword === repeatPassword && !!name;
+	$: passwordNotRepeated = loginPassword.length > 0 && signupPassword !== repeatPassword;
 
-	function login() {
-		console.log('Logging in!');
+	let requestState: 'nothing' | 'pending' | 'success' | 'failed' = 'nothing';
+
+	let requestErrorCode: 'invalid_email_password' | 'email_already_in_use' | 'unknown' | null;
+
+	function inferErrorStatus(result: FailedHttpResponse) {
+		const { error, detailedErrorCode } = result.errorDetails;
+
+		if (
+			error === ErrorKind.BadRequest &&
+			detailedErrorCode === WellKnownAuthErrorCodes.InvalidEmailOrPassword
+		) {
+			requestErrorCode = 'invalid_email_password';
+		} else if (
+			error === ErrorKind.Conflict &&
+			detailedErrorCode === WellKnownAuthErrorCodes.EmailAlreadyInUse
+		) {
+			requestErrorCode = 'email_already_in_use';
+		} else {
+			requestErrorCode = 'unknown';
+		}
 	}
 
-	function signup() {
-		console.log('signing up');
+	async function login() {
+		requestState = 'pending';
+
+		const result = await doLogin(loginEmail, loginPassword);
+
+		if (result.success === true) {
+			requestState = 'success';
+			authStateStore.set({
+				name: result.data.name,
+				accessKey: result.data.accessKey
+			});
+
+			dispatcher('close');
+		} else {
+			requestState = 'failed';
+
+			inferErrorStatus(result);
+		}
+	}
+
+	async function signup() {
+		requestState = 'pending';
+
+		const result = await doSignup(signupEmail, signupPassword, name);
+		if (result.success === true) {
+			requestState = 'success';
+			authStateStore.set({
+				name: result.data.name,
+				accessKey: result.data.accessKey
+			});
+
+			dispatcher('close');
+		} else {
+			requestState = 'failed';
+
+			inferErrorStatus(result);
+		}
 	}
 </script>
 
-<Dialog on:close {dialogSource}>
+<Dialog {dialogSource} on:close>
 	<svelte:fragment slot="title">Login</svelte:fragment>
 
 	{#if mode === 'login'}
@@ -34,12 +94,12 @@
 			<div class="form-group">
 				<label for="login-email-input">Email</label>
 				<!-- svelte-ignore a11y-autofocus -->
-				<input type="email" id="login-email-input" bind:value={email} autofocus />
+				<input type="email" id="login-email-input" bind:value={loginEmail} autofocus />
 			</div>
 
 			<div class="form-group">
 				<label for="login-password-input">Password</label>
-				<input type="password" id="login-password-input" bind:value={password} minlength="6" />
+				<input type="password" id="login-password-input" bind:value={loginPassword} minlength="6" />
 			</div>
 		</form>
 	{:else}
@@ -47,17 +107,29 @@
 			<div class="form-group">
 				<label for="signup-email-input">Email</label>
 				<!-- svelte-ignore a11y-autofocus -->
-				<input type="email" id="signup-email-input" bind:value={email} autofocus />
+				<input
+					type="email"
+					id="signup-email-input"
+					bind:value={signupEmail}
+					autofocus
+					autocomplete="email"
+				/>
 			</div>
 
 			<div class="form-group">
 				<label for="signup-name-input">Name</label>
-				<input id="signup-name-input" bind:value={name} />
+				<input id="signup-name-input" bind:value={name} autocomplete="name" />
 			</div>
 
 			<div class="form-group">
 				<label for="signup-password-input">Password</label>
-				<input id="signup-password-input" type="password" bind:value={password} minlength="6" />
+				<input
+					id="signup-password-input"
+					type="password"
+					bind:value={signupPassword}
+					minlength="6"
+					autocomplete="new-password"
+				/>
 			</div>
 
 			<div class="form-group">
@@ -67,8 +139,9 @@
 					type="password"
 					bind:value={repeatPassword}
 					minlength="6"
-					aria-invalid={passwordNotRepeated}
+					aria-invalid="{passwordNotRepeated}"
 					aria-errormessage="password-does-not-match-error-message"
+					autocomplete="new-password"
 				/>
 				{#if passwordNotRepeated}
 					<span class="validation-error" id="password-does-not-match-error-message">
@@ -79,23 +152,49 @@
 		</form>
 	{/if}
 
-	<div slot="footer" class="footer">
+	{#if requestState === 'failed'}
+		<div class="request-error validation-error">
+			{#if requestErrorCode === 'invalid_email_password'}
+				Invalid email or password
+			{:else if requestErrorCode === 'email_already_in_use'}
+				Email already in use
+			{:else}
+				Unknown error occurred
+			{/if}
+		</div>
+	{/if}
+
+	<div class="footer" slot="footer">
 		{#if mode === 'login'}
 			<button type="button" class="text-button" on:click={() => (mode = 'signup')}>
 				Create Account
 			</button>
 
-			<button type="submit" class="main-button" disabled={!loginIsValid} form="login-form"
-				>Login</button
+			<button
+				type="submit"
+				class="main-button"
+				disabled={!loginIsValid || requestState === 'pending'}
+				form="login-form"
 			>
+				{#if requestState === 'pending'}
+					Logging in...
+				{:else}
+					Login
+				{/if}
+			</button>
 		{:else}
 			<button type="button" class="text-button" on:click={() => (mode = 'login')}>
 				Already have an account?
 			</button>
 
-			<button type="submit" class="main-button" disabled={!signupIsValid} form="signup-form"
-				>Create Account</button
+			<button
+				type="submit"
+				class="main-button"
+				disabled={!signupIsValid || requestState === 'pending'}
+				form="signup-form"
 			>
+				Create Account
+			</button>
 		{/if}
 	</div>
 </Dialog>

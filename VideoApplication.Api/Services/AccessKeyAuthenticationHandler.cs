@@ -11,6 +11,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using VideoApplication.Api.Database;
 using VideoApplication.Api.Database.Models;
+using VideoApplication.Api.Extensions;
 
 namespace VideoApplication.Api.Services;
 
@@ -88,6 +89,8 @@ public class AccessKeyAuthenticationHelper
             return await _claimsPrincipalFactory.CreateAsync(user);
         });
 
+        principal.Claims.Add(new CachedClaim("", new Dictionary<string, string>(), ClaimsPrincipalExtensions.AccessKeyClaimType, hashString, "", "string"));
+        
         var ticket = new AuthenticationTicket(principal, schemeName);
 
         return AuthenticateResult.Success(ticket);

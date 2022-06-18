@@ -66,6 +66,15 @@ public class Startup
 
         services.AddApplicationServices();
 
+        services.AddCors(options =>
+        {
+            options.AddDefaultPolicy(p =>
+            {
+                p.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin()
+                    .SetPreflightMaxAge(TimeSpan.FromMinutes(5));
+            });
+        });
+
     }
 
     public void Configure(IApplicationBuilder app)
@@ -85,6 +94,8 @@ public class Startup
         app.UseHttpsRedirection();
         
         app.UseRouting();
+        app.UseCors();
+        
         app.UseMiddleware<ExceptionStatusMiddleware>();
         
         app.UseAuthentication();

@@ -1,9 +1,12 @@
 import { dev } from '$app/env';
+import { get } from 'svelte/store';
+import { authStateStore } from '../stores/auth-state-store';
 
 const apiDomain = dev ? 'https://localhost:5001' : 'NOT IMPLEMENTED';
 
 interface BaseHttpRequest {
 	path: string;
+	withAuth: boolean;
 	queryParameters?: URLSearchParams;
 }
 
@@ -16,9 +19,9 @@ interface RequestWithBody<T> extends BaseHttpRequest {
 	body: T;
 }
 
-export type HttpRequest<T = any> = BodyLessRequest | RequestWithBody<T>;
+export type HttpRequest<T = never> = BodyLessRequest | RequestWithBody<T>;
 
-export interface SuccessfulHttpResponse<T> {
+export interface SuccessfulHttpResponse<T = never> {
 	success: true;
 	data: T;
 }
@@ -26,8 +29,9 @@ export interface SuccessfulHttpResponse<T> {
 export enum ErrorKind {
 	Undefined = 0,
 	BadRequest = 400,
-	Conflict = 409,
 	NotFound = 404,
+	Unauthorized = 401,
+	Conflict = 409,
 	InternalServerError = 500
 }
 
@@ -42,21 +46,36 @@ export interface FailedHttpResponse {
 	errorDetails: ErrorResponse;
 }
 
-export type HttpResponse<T> = SuccessfulHttpResponse<T> | FailedHttpResponse;
+export type HttpResponse<T = never> = SuccessfulHttpResponse<T> | FailedHttpResponse;
 
-export async function doRequest<TResponse, TRequest = any>(request: HttpRequest<TRequest>): Promise<HttpResponse<TResponse>> {
+export async function doRequest<TResponse = never, TRequest = never>(
+	request: HttpRequest<TRequest>
+): Promise<HttpResponse<TResponse>> {
 	const url = new URL(request.path, apiDomain);
 
-	const body = request.method === 'POST' || request.method === 'PUT'
-		? JSON.stringify(request.body)
-		: undefined;
+	const headers = new Headers();
 
-	const httpRequest = new Request(url, {
+	if (request.withAuth) {
+		const authState = get(authStateStore);
+
+		if (authState.accessKey) {
+			headers.set('Authorization', `Bearer ${authState.accessKey}`);
+		}
+	}
+
+	const requestInit: RequestInit = {
 		mode: 'cors',
-		credentials: 'include',
 		redirect: 'error',
-		body
-	});
+		method: request.method,
+		headers
+	};
+
+	if (request.method === 'POST' || request.method === 'PUT') {
+		requestInit.body = JSON.stringify(request.body);
+		headers.set('content-type', 'application/json');
+	}
+
+	const httpRequest = new Request(url, requestInit);
 
 	try {
 		const response = await fetch(httpRequest);

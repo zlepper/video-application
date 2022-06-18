@@ -9,6 +9,11 @@ public static class ClaimsPrincipalExtensions
         return GetClaimValue(principal, ClaimTypes.NameIdentifier);
     }
 
+    public static string GetAccessKey(this ClaimsPrincipal principal)
+    {
+        return GetClaimValue(principal, AccessKeyClaimType);
+    }
+    
     private static string GetClaimValue(ClaimsPrincipal principal, string claimType)
     {
         var claim = principal.FindFirst(claimType) ??
@@ -16,4 +21,6 @@ public static class ClaimsPrincipalExtensions
 
         return claim.Value;
     }
+    
+    public const string AccessKeyClaimType = "accessKey";
 }

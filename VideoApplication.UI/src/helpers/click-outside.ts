@@ -1,15 +1,21 @@
 export function clickOutside(node: HTMLElement) {
-  const handleClick = (event: MouseEvent) => {
-    if (!node.contains(event.target as HTMLElement)) {
-      node.dispatchEvent(new CustomEvent("outclick"));
-    }
-  };
+	function handleClick(event: MouseEvent) {
+		if (!node.contains(event.target as HTMLElement)) {
+			node.dispatchEvent(new CustomEvent('outclick'));
+		}
+	}
 
-  document.addEventListener("click", handleClick, true);
+	function preventPropagation(event: MouseEvent) {
+		event.stopPropagation();
+	}
 
-  return {
-    destroy() {
-      document.removeEventListener("click", handleClick, true);
-    },
-  };
+	document.addEventListener('click', handleClick);
+	node.addEventListener('click', preventPropagation);
+
+	return {
+		destroy() {
+			document.removeEventListener('click', handleClick);
+			node.removeEventListener('click', preventPropagation);
+		}
+	};
 }

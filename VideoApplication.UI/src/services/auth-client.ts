@@ -1,5 +1,5 @@
-import { doRequest } from './http-client';
 import type { HttpResponse } from './http-client';
+import { doRequest } from './http-client';
 
 export interface UserInfo {
 	accessKey: string;
@@ -8,10 +8,16 @@ export interface UserInfo {
 	userId: string;
 }
 
+export enum WellKnownAuthErrorCodes {
+	EmailAlreadyInUse = 1,
+	InvalidEmailOrPassword = 2
+}
+
 export async function doLogin(email: string, password: string): Promise<HttpResponse<UserInfo>> {
-	return await doRequest<UserInfo>({
+	return await doRequest<UserInfo, { email: string; password: string }>({
 		path: 'api/auth/login',
 		method: 'POST',
+		withAuth: false,
 		body: {
 			email,
 			password
@@ -24,9 +30,10 @@ export async function doSignup(
 	password: string,
 	name: string
 ): Promise<HttpResponse<UserInfo>> {
-	return await doRequest<UserInfo>({
+	return await doRequest<UserInfo, { email: string; password: string; name: string }>({
 		path: 'api/auth/signup',
 		method: 'POST',
+		withAuth: false,
 		body: {
 			email,
 			password,
@@ -38,6 +45,15 @@ export async function doSignup(
 export async function doWhoAmI(): Promise<HttpResponse<UserInfo>> {
 	return await doRequest<UserInfo>({
 		path: 'api/auth/who-am-i',
-		method: 'GET'
+		method: 'GET',
+		withAuth: true
+	});
+}
+
+export async function doLogout(): Promise<HttpResponse> {
+	return await doRequest({
+		path: 'api/auth/logout',
+		method: 'DELETE',
+		withAuth: true
 	});
 }

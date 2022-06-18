@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using NodaTime;
 using VideoApplication.Api.Controllers.Responses;
 using VideoApplication.Api.Database;
@@ -98,6 +99,23 @@ public class AuthController : ControllerBase
         var validated = await _userManager.IsEmailConfirmedAsync(user);
 
         return new UserInfo("<Redacted>", user.Name, validated, user.Id);
+    }
+
+    [HttpDelete("logout")]
+    [Authorize]
+    public async Task<object> Logout()
+    {
+        var akToken = User.GetAccessKey();
+        var ak = await _context.AccessKeys.FirstOrDefaultAsync(a => a.Value == akToken);
+        if (ak != null)
+        {
+            _context.AccessKeys.Remove(ak);
+            await _context.SaveChangesAsync();
+        }
+        
+        await _signInManager.SignOutAsync();
+
+        return new object();
     }
 
 

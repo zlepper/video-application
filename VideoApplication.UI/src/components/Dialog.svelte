@@ -13,6 +13,7 @@
 	const dispatcher = createEventDispatcher();
 
 	function closeDialog() {
+		console.log('close dialog');
 		dispatcher('close');
 	}
 </script>

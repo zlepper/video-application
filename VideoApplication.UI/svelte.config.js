@@ -23,7 +23,7 @@ const config = {
 						additionalData: '@use "src/variables.scss" as *;'
 					}
 				}
-			},
+			}
 		}
 	}
 };
