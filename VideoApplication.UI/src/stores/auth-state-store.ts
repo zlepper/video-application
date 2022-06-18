@@ -1,5 +1,5 @@
-import { derived, writable } from 'svelte/store';
-import { withMethods } from '../helpers/with-methods';
+import { resultWithMethods } from '../helpers/with-methods';
+import { derivedScopeStore, scopedStore } from './request-scoped-store';
 
 interface AuthState {
 	accessKey: string | null;
@@ -7,12 +7,18 @@ interface AuthState {
 }
 
 const initialValue = { accessKey: null, name: '' };
-const internalAuthStateStore = writable<AuthState>(initialValue);
 
-export const authStateStore = withMethods(internalAuthStateStore, {
-	reset() {
-		internalAuthStateStore.set(initialValue);
+export const getAuthStateStore = resultWithMethods(
+	scopedStore<AuthState>('Auth State', initialValue),
+	{
+		reset(store) {
+			store.set(initialValue);
+		}
 	}
-});
+);
 
-export const isLoggedIn = derived(internalAuthStateStore, (a) => !!a.accessKey);
+export const getIsLoggedInStore = derivedScopeStore(
+	'is logged in',
+	getAuthStateStore,
+	(authState) => !!authState.accessKey
+);

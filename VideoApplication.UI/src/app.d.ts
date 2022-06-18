@@ -1,10 +1,23 @@
 /// <reference types="@sveltejs/kit" />
 
+type StoreKey = `request-scope-id-${number}`;
+
 // See https://kit.svelte.dev/docs/types#app
 // for information about these interfaces
 declare namespace App {
-	// interface Locals {}
+	interface StoreSymbolProvider {
+		storeSymbol: StoreKey;
+	}
+
+	interface Locals extends StoreSymbolProvider {
+		storeSymbol: StoreKey;
+	}
 	// interface Platform {}
-	// interface Session {}
+	interface Session extends StoreSymbolProvider {
+		accessKey?: string;
+		name?: string;
+	}
 	// interface Stuff {}
 }
+
+type ReturnType<T> = T extends (...args: infer TArgs) => infer TReturn ? TReturn : never;

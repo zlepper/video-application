@@ -1,7 +1,11 @@
 <script lang="ts">
+	import { getGlobalSession } from "../services/global-session";
+	import { getIsLoggedInStore } from "../stores/auth-state-store";
 	import LoginDialog from "./LoginDialog.svelte";
-	import { isLoggedIn } from "../stores/auth-state-store";
 	import UserMenu from "./UserMenu.svelte";
+
+	const session = getGlobalSession();
+	const isLoggedIn = getIsLoggedInStore(session);
 
 	let loginOpen = false;
 

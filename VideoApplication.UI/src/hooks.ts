@@ -1,5 +1,5 @@
 import type { GetSession, Handle } from '@sveltejs/kit';
-import { authStateStore } from './stores/auth-state-store';
+import { removeScopedStores } from './stores/request-scoped-store';
 
 function parseCookie(cookie: string): Record<string, string> {
 	const cookies = cookie.split('; ');
@@ -15,26 +15,22 @@ function parseCookie(cookie: string): Record<string, string> {
 	return result;
 }
 
+let id = 0;
+
 // noinspection JSUnusedGlobalSymbols
-export const handle: Handle = ({ event, resolve }) => {
-	const cookie = event.request.headers.get('cookie') ?? '';
+export const handle: Handle = async ({ event, resolve }) => {
+	event.locals.storeSymbol = `request-scope-id-${++id}`;
 
-	const cookies = parseCookie(cookie);
+	const result = await resolve(event);
 
-	const { token, name } = cookies;
+	removeScopedStores(event.locals.storeSymbol);
 
-	if (token && name) {
-		authStateStore.set({
-			accessKey: token,
-			name
-		});
-	}
-
-	return resolve(event);
+	return result;
 };
 
 // noinspection JSUnusedGlobalSymbols
 export const getSession: GetSession = async (event) => {
+	const storeSymbol = event.locals.storeSymbol;
 	const cookie = event.request.headers.get('cookie') ?? '';
 
 	const cookies = parseCookie(cookie);
@@ -44,9 +40,12 @@ export const getSession: GetSession = async (event) => {
 	if (token && name) {
 		return {
 			accessKey: token,
-			name
+			name,
+			storeSymbol
 		};
 	}
 
-	return {};
+	return {
+		storeSymbol
+	};
 };

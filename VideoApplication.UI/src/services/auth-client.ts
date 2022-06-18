@@ -1,5 +1,5 @@
 import type { BaseRequestOptions, HttpResponse } from './http-client';
-import { doRequest } from './http-client';
+import { HttpClient } from './http-client';
 
 export interface UserInfo {
 	accessKey: string;
@@ -13,48 +13,59 @@ export enum WellKnownAuthErrorCodes {
 	InvalidEmailOrPassword = 2
 }
 
-export async function doLogin(email: string, password: string): Promise<HttpResponse<UserInfo>> {
-	return await doRequest<UserInfo, { email: string; password: string }>({
-		path: 'api/auth/login',
-		method: 'POST',
-		withAuth: false,
-		body: {
-			email,
-			password
-		}
-	});
-}
+export class AuthClient {
+	private _client: HttpClient;
 
-export async function doSignup(
-	email: string,
-	password: string,
-	name: string
-): Promise<HttpResponse<UserInfo>> {
-	return await doRequest<UserInfo, { email: string; password: string; name: string }>({
-		path: 'api/auth/signup',
-		method: 'POST',
-		withAuth: false,
-		body: {
-			email,
-			password,
-			name
-		}
-	});
-}
+	constructor(session: App.Session) {
+		this._client = new HttpClient(session);
+	}
 
-export async function doWhoAmI(options?: BaseRequestOptions): Promise<HttpResponse<UserInfo>> {
-	return await doRequest<UserInfo>({
-		...options,
-		path: 'api/auth/who-am-i',
-		method: 'GET',
-		withAuth: true
-	});
-}
+	public async login(email: string, password: string): Promise<HttpResponse<UserInfo>> {
+		return await this._client.doRequest<UserInfo, { email: string; password: string }>({
+			path: 'api/auth/login',
+			method: 'POST',
+			withAuth: false,
+			body: {
+				email,
+				password
+			}
+		});
+	}
 
-export async function doLogout(): Promise<HttpResponse> {
-	return await doRequest({
-		path: 'api/auth/logout',
-		method: 'DELETE',
-		withAuth: true
-	});
+	public async signup(
+		email: string,
+		password: string,
+		name: string
+	): Promise<HttpResponse<UserInfo>> {
+		return await this._client.doRequest<
+			UserInfo,
+			{ email: string; password: string; name: string }
+		>({
+			path: 'api/auth/signup',
+			method: 'POST',
+			withAuth: false,
+			body: {
+				email,
+				password,
+				name
+			}
+		});
+	}
+
+	public async whoAmI(options?: BaseRequestOptions): Promise<HttpResponse<UserInfo>> {
+		return await this._client.doRequest<UserInfo>({
+			...options,
+			path: 'api/auth/who-am-i',
+			method: 'GET',
+			withAuth: true
+		});
+	}
+
+	public async logout(): Promise<HttpResponse> {
+		return await this._client.doRequest({
+			path: 'api/auth/logout',
+			method: 'DELETE',
+			withAuth: true
+		});
+	}
 }

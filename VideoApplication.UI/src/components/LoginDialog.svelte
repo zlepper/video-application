@@ -1,12 +1,18 @@
 <script lang="ts">
 	import { createEventDispatcher } from "svelte";
 	import type { UserInfo } from "../services/auth-client";
-	import { doLogin, doSignup, WellKnownAuthErrorCodes } from "../services/auth-client";
+	import { AuthClient, WellKnownAuthErrorCodes } from "../services/auth-client";
+	import { getGlobalSession } from "../services/global-session";
 	import type { FailedHttpResponse } from "../services/http-client";
 	import { ErrorKind } from "../services/http-client";
-	import { setSrrSession } from "../services/ssr-client";
-	import { authStateStore } from "../stores/auth-state-store";
+	import { SsrClient } from "../services/ssr-client";
+	import { getAuthStateStore } from "../stores/auth-state-store";
 	import Dialog from "./Dialog.svelte";
+
+	const session = getGlobalSession();
+	const authClient = new AuthClient(session);
+	const ssrClient = new SsrClient(session);
+	const authStateStore = getAuthStateStore(session);
 
 	export let dialogSource: HTMLElement | null;
 
@@ -49,7 +55,7 @@
 	}
 
 	async function persistLogin(userInfo: UserInfo) {
-		const result = await setSrrSession({
+		const result = await ssrClient.setSrrSession({
 			token: userInfo.accessKey,
 			name: userInfo.name
 		});
@@ -61,7 +67,7 @@
 	async function login() {
 		requestState = 'pending';
 
-		const result = await doLogin(loginEmail, loginPassword);
+		const result = await authClient.login(loginEmail, loginPassword);
 
 		if (result.success === true) {
 			requestState = 'success';
@@ -83,7 +89,7 @@
 	async function signup() {
 		requestState = 'pending';
 
-		const result = await doSignup(signupEmail, signupPassword, name);
+		const result = await authClient.signup(signupEmail, signupPassword, name);
 		if (result.success === true) {
 			requestState = 'success';
 			authStateStore.set({

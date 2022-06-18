@@ -1,7 +1,8 @@
 import type { Subscriber, Unsubscriber, Updater, Writable } from 'svelte/store';
+import { get } from 'svelte/store';
 
 export interface WrappedStoreHooks<TInternal, TPublic> {
-	convertToInternal(value: TPublic): TInternal;
+	convertToInternal(value: TPublic, current: TInternal): TInternal;
 	convertToPublic(value: TInternal): TPublic;
 }
 
@@ -11,17 +12,18 @@ export function wrappedStore<TInternal, TPublic>(
 ): Writable<TPublic> {
 	return {
 		set(value: TPublic): void {
-			const internal = hooks.convertToInternal(value);
+			const current = get(store);
+			const internal = hooks.convertToInternal(value, current);
 			store.set(internal);
 		},
 		subscribe(run: Subscriber<TPublic>): Unsubscriber {
 			return store.subscribe((value) => run(hooks.convertToPublic(value)));
 		},
 		update(updater: Updater<TPublic>): void {
-			store.update((internal) => {
-				const pub = hooks.convertToPublic(internal);
+			store.update((current) => {
+				const pub = hooks.convertToPublic(current);
 				const updated = updater(pub);
-				return hooks.convertToInternal(updated);
+				return hooks.convertToInternal(updated, current);
 			});
 		}
 	};

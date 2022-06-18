@@ -3,9 +3,15 @@
 	import { quintOut } from "svelte/easing";
 	import { fly } from "svelte/transition";
 	import { clickOutside } from "../helpers/click-outside";
-	import { doLogout } from "../services/auth-client";
-	import { clearSsrState } from "../services/ssr-client";
-	import { authStateStore } from "../stores/auth-state-store";
+	import { AuthClient } from "../services/auth-client";
+	import { getGlobalSession } from "../services/global-session";
+	import { SsrClient } from "../services/ssr-client";
+	import { getAuthStateStore } from "../stores/auth-state-store";
+
+	const session = getGlobalSession();
+	let authClient = new AuthClient(session);
+	let authStateStore = getAuthStateStore(session);
+	let ssrClient = new SsrClient(session);
 
 	const dispatch = createEventDispatcher();
 
@@ -14,11 +20,11 @@
 	}
 
 	async function logout() {
-		const result = await doLogout();
+		const result = await authClient.logout();
 		if (result.success) {
 			authStateStore.reset();
 
-			const clearResult = await clearSsrState();
+			const clearResult = await ssrClient.clearSsrState();
 			if (clearResult.success === false) {
 				console.error('Failed to clear SSR state', clearResult);
 			}

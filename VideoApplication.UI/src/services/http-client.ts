@@ -1,6 +1,6 @@
 import { dev } from '$app/env';
 import { get } from 'svelte/store';
-import { authStateStore } from '../stores/auth-state-store';
+import { getAuthStateStore } from '../stores/auth-state-store';
 
 const apiDomain = dev ? 'https://localhost:5001' : 'NOT IMPLEMENTED';
 
@@ -55,73 +55,77 @@ export interface FailedHttpResponse {
 
 export type HttpResponse<T = never> = SuccessfulHttpResponse<T> | FailedHttpResponse;
 
-export async function doRequest<TResponse = never, TRequest = never>(
-	request: HttpRequest<TRequest>
-): Promise<HttpResponse<TResponse>> {
-	const domain = request.toServerSideRenderer ? location.origin : apiDomain;
+export class HttpClient {
+	constructor(private session: App.Session) {}
 
-	const url = new URL(request.path, domain);
+	public async doRequest<TResponse = never, TRequest = never>(
+		request: HttpRequest<TRequest>
+	): Promise<HttpResponse<TResponse>> {
+		const domain = request.toServerSideRenderer ? location.origin : apiDomain;
 
-	const headers = new Headers();
+		const url = new URL(request.path, domain);
 
-	if (request.withAuth) {
-		const authState = get(authStateStore);
+		const headers = new Headers();
 
-		if (authState.accessKey) {
-			headers.set('Authorization', `Bearer ${authState.accessKey}`);
-		}
-	}
+		if (request.withAuth) {
+			const authState = get(getAuthStateStore(this.session));
 
-	const requestInit: RequestInit = {
-		mode: 'cors',
-		redirect: 'error',
-		method: request.method,
-		headers
-	};
-
-	if (request.method === 'POST' || request.method === 'PUT') {
-		requestInit.body = JSON.stringify(request.body);
-		headers.set('content-type', 'application/json');
-	}
-
-	const httpRequest = new Request(url, requestInit);
-
-	try {
-		const actualFetch = request.customFetch ?? fetch;
-		const response = await actualFetch(httpRequest);
-		if (response.ok) {
-			const responseContent = (await response.json()) as TResponse;
-			return {
-				success: true,
-				data: responseContent
-			};
-		} else {
-			const rawContent = await response.text();
-			let errorDetails: ErrorResponse = {
-				message: 'Unknown error',
-				error: response.status,
-				detailedErrorCode: -1
-			};
-			if (response.headers.get('content-type') === 'application/json') {
-				console.log({ rawContent });
-				errorDetails = JSON.parse(rawContent) as ErrorResponse;
+			if (authState.accessKey) {
+				headers.set('Authorization', `Bearer ${authState.accessKey}`);
 			}
+		}
+
+		const requestInit: RequestInit = {
+			mode: 'cors',
+			redirect: 'error',
+			method: request.method,
+			headers
+		};
+
+		if (request.method === 'POST' || request.method === 'PUT') {
+			requestInit.body = JSON.stringify(request.body);
+			headers.set('content-type', 'application/json');
+		}
+
+		const httpRequest = new Request(url, requestInit);
+
+		try {
+			const actualFetch = request.customFetch ?? fetch;
+			const response = await actualFetch(httpRequest);
+			if (response.ok) {
+				const responseContent = (await response.json()) as TResponse;
+				return {
+					success: true,
+					data: responseContent
+				};
+			} else {
+				const rawContent = await response.text();
+				let errorDetails: ErrorResponse = {
+					message: 'Unknown error',
+					error: response.status,
+					detailedErrorCode: -1
+				};
+				if (response.headers.get('content-type') === 'application/json') {
+					console.log({ rawContent });
+					errorDetails = JSON.parse(rawContent) as ErrorResponse;
+				}
+				return {
+					success: false,
+					errorDetails,
+					rawContent
+				};
+			}
+		} catch (err) {
+			console.error('Exception when executing request', err);
 			return {
 				success: false,
-				errorDetails,
-				rawContent
+				errorDetails: {
+					error: ErrorKind.Undefined,
+					detailedErrorCode: -1,
+					message: `Unknown error: ${err}`
+				},
+				rawContent: ''
 			};
 		}
-	} catch (err) {
-		console.error('Exception when executing request', err);
-		return {
-			success: false,
-			errorDetails: {
-				error: ErrorKind.Undefined,
-				detailedErrorCode: -1,
-				message: `Unknown error: ${err}`
-			},
-			rawContent: ''
-		};
 	}
 }
