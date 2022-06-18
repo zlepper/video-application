@@ -188,7 +188,7 @@
 
 	<div class="footer" slot="footer">
 		{#if mode === 'login'}
-			<button type="button" class="text-button" on:click={() => (mode = 'signup')}>
+			<button type="button" class="text-button" on:click|preventDefault={() => (mode = 'signup')}>
 				Create Account
 			</button>
 
@@ -205,7 +205,7 @@
 				{/if}
 			</button>
 		{:else}
-			<button type="button" class="text-button" on:click={() => (mode = 'login')}>
+			<button type="button" class="text-button" on:click|preventDefault={() => (mode = 'login')}>
 				Already have an account?
 			</button>
 

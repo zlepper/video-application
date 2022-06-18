@@ -1,15 +1,32 @@
+@import 'variables';
+
 body {
   --theme-color: #9b59b6;
   --highlight-theme-color: #8e44ad;
   --theme-text-color: #fafafa;
   --top-bar-color: #0e1111;
   --top-bar-text-color: #fefefe;
-  --background-color: #fafafa;
+  --background-color: #{$light-background-color};
   --form-input-color: #fdfdfd;
 
   --border-color: #ebebeb;
   --error-color: #f01414;
+
+  --side-bar-color: #{darken($light-background-color, 3%)};
+  --side-bar-hover-color: #{darken($light-background-color, 5%)};
+  --side-bar-active-color: #{darken($light-background-color, 10%)};
+  --side-bar-active-hover-color: #{darken($light-background-color, 13%)};
+
   margin: 0;
   overflow: hidden;
   background-color: var(--background-color);
+
+  height: 100vh;
+  width: 100vw;
+
+  display: grid;
+  grid-template-rows: $top-bar-height 1fr;
+  grid-auto-columns: 15em 1fr;
+
+  grid-template-areas: 'topbar topbar' 'nav content';
 }

@@ -44,6 +44,9 @@
 	out:fly={{ duration: 300, easing: quintOut, y: 20 }}
 	use:clickOutside
 >
+	<a class="menu-button" href="/channel-manager">
+		Channel Manager
+	</a>
 	<button class="menu-button" on:click={logout} type="button">Logout</button>
 </div>
 
@@ -53,12 +56,21 @@
 		top: $top-bar-height + 1em;
 		right: 1em;
 		background-color: var(--background-color);
+		box-shadow: 0 0 15px transparentize($black, 0.7);
 		border-radius: 3px;
 		border: var(--theme-color) solid 1px;
+		display: flex;
+		flex-direction: column;
 	}
 
 	.menu-button {
 		@extend %reset-button;
+		@extend %reset-link;
 		padding: 1em 1em;
+
+		&:hover {
+			background-color: var(--theme-color);
+			color: var(--theme-text-color);
+		}
 	}
 </style>

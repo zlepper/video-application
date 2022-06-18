@@ -17,7 +17,9 @@
 
 <div class="top-bar">
 	<div>
-		<h1>Video Application</h1>
+		<a class="application-title" href="/">
+			Video Application
+		</a>
 	</div>
 
 	<div class="filler" />
@@ -32,8 +34,15 @@
 			>
 				Login
 			</button>
-			{:else}
-			<button class="user-button" type="button" on:click|preventDefault|stopPropagation={() => {userMenuOpen = !userMenuOpen}} bind:this={userMenuButton}>
+		{:else}
+			<button
+				class="user-button"
+				type="button"
+				on:click|preventDefault|stopPropagation={() => {
+					userMenuOpen = !userMenuOpen;
+				}}
+				bind:this={userMenuButton}
+			>
 				User icon
 			</button>
 		{/if}
@@ -45,26 +54,33 @@
 {/if}
 
 {#if userMenuOpen}
-	<UserMenu on:close={() => {userMenuOpen = false}} />
+	<UserMenu
+		on:close={() => {
+			userMenuOpen = false;
+		}}
+	/>
 {/if}
 
 <style lang="scss">
+	.application-title {
+		color: var(--top-bar-text-color);
+		text-decoration: none;
+		font-size: 2em;
+		flex: 0 0 auto;
+	}
+
 	.top-bar {
 		width: 100%;
 		height: $top-bar-height;
 		box-sizing: border-box;
 		background-color: var(--top-bar-color);
 		color: var(--top-bar-text-color);
+		grid-area: topbar;
 
 		display: flex;
 		flex-direction: row;
 		align-items: center;
 		padding: 0 1em;
-
-		h1 {
-			margin: 0;
-			flex: 0 0 auto;
-		}
 
 		.filler {
 			flex: 1;

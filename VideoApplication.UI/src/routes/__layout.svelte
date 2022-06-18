@@ -62,6 +62,7 @@
 
 <script lang="ts">
 	import '../app.scss';
+  import NavSideBar from "../components/NavSideBar.svelte";
 	import TopBar from '../components/TopBar.svelte';
   import { setGlobalSession } from "../services/global-session";
 
@@ -70,7 +71,14 @@
 
 <TopBar />
 
+<NavSideBar />
+
+<div class="content">
 <slot />
+</div>
 
 <style lang="scss">
+  .content {
+    grid-area: content;
+  }
 </style>

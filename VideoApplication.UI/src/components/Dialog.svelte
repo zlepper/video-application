@@ -1,29 +1,48 @@
 <script lang="ts">
-	import { clickOutside } from '../helpers/click-outside';
-	import { createEventDispatcher } from 'svelte';
-	import { fly } from 'svelte/transition';
-	import { animateFrom } from '../helpers/animate-from';
+	import { createEventDispatcher } from "svelte";
+	import type { TransitionConfig } from "svelte/transition";
+	import { fly } from "svelte/transition";
+	import { animateFrom } from "../helpers/animate-from";
+	import { clickOutside } from "../helpers/click-outside";
+	import { noop } from "../helpers/noop";
 
 	export let dialogSource: HTMLElement | null;
 
-	$: transition = dialogSource
-		? animateFrom(dialogSource)
-		: (node) => fly(node, { duration: 300, y: 100 });
+	let dialogWidth: number;
+	let dialogHeight: number;
+
+	let transition: ((node: HTMLElement) => TransitionConfig) | ((node: HTMLElement) => () => TransitionConfig);
+
+	$: {
+		transition = dialogSource
+			? animateFrom(noop(dialogSource, dialogHeight, dialogWidth))
+			: (node) => fly(node, { duration: 300, y: 100 });
+	}
 
 	const dispatcher = createEventDispatcher();
 
 	function closeDialog() {
-		console.log('close dialog');
 		dispatcher('close');
 	}
 </script>
 
-<div class="dialog" use:clickOutside on:outclick={closeDialog} transition:transition class:no-footer={!$$slots.footer} role="dialog" aria-modal="true">
+<div
+	aria-modal="true"
+	bind:clientHeight={dialogHeight}
+	bind:clientWidth={dialogWidth}
+	class="dialog"
+	class:no-footer={!$$slots.footer}
+	in:transition
+	on:outclick={closeDialog}
+	out:transition
+	role="dialog"
+	use:clickOutside
+>
 	<h2 class="dialog-title">
 		<slot name="title" />
 	</h2>
 
-	<button class="header-close" type="button" on:click={closeDialog}> X </button>
+	<button class="header-close" on:click={closeDialog} type="button">X</button>
 
 	<article>
 		<slot />

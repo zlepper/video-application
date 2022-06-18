@@ -1,3 +1,4 @@
+import { browser } from '$app/env';
 import type { Readable, Writable } from 'svelte/store';
 import { derived, writable } from 'svelte/store';
 
@@ -19,12 +20,20 @@ function getOrCreateStore<T>(requestKey: StoreKey, storeKey: symbol, create: () 
 	return store;
 }
 
-const globalSymbol = 'global';
+const globalSymbol: StoreKey = 'request-scope-id-1';
 
 export type ScopedStore<T> = (session: App.Session) => Writable<T>;
 
 function getRequestScope(session: App.Session): StoreKey {
-	return session.storeSymbol ?? globalSymbol;
+	const storeSymbol = session?.storeSymbol;
+	if (!storeSymbol) {
+		if (browser) {
+			return globalSymbol;
+		} else {
+			throw new Error('Doing SSR request without having the store symbol set on the session.');
+		}
+	}
+	return storeSymbol;
 }
 
 export function scopedStore<T>(name: string, initialValue?: T): ScopedStore<T> {
