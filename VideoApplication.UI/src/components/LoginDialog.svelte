@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { createEventDispatcher } from "svelte";
+	import type { UserInfo } from "../services/auth-client";
 	import { doLogin, doSignup, WellKnownAuthErrorCodes } from "../services/auth-client";
 	import type { FailedHttpResponse } from "../services/http-client";
 	import { ErrorKind } from "../services/http-client";
+	import { setSrrSession } from "../services/ssr-client";
 	import { authStateStore } from "../stores/auth-state-store";
 	import Dialog from "./Dialog.svelte";
 
@@ -46,6 +48,16 @@
 		}
 	}
 
+	async function persistLogin(userInfo: UserInfo) {
+		const result = await setSrrSession({
+			token: userInfo.accessKey,
+			name: userInfo.name
+		});
+		if(result.success === false) {
+			console.error('Failed to set session', result);
+		}
+	}
+
 	async function login() {
 		requestState = 'pending';
 
@@ -57,6 +69,8 @@
 				name: result.data.name,
 				accessKey: result.data.accessKey
 			});
+
+			await persistLogin(result.data);
 
 			dispatcher('close');
 		} else {
@@ -77,6 +91,8 @@
 				accessKey: result.data.accessKey
 			});
 
+			await persistLogin(result.data);
+
 			dispatcher('close');
 		} else {
 			requestState = 'failed';
@@ -94,12 +110,12 @@
 			<div class="form-group">
 				<label for="login-email-input">Email</label>
 				<!-- svelte-ignore a11y-autofocus -->
-				<input type="email" id="login-email-input" bind:value={loginEmail} autofocus />
+				<input type="email" id="login-email-input" bind:value={loginEmail} autofocus autocomplete="email" />
 			</div>
 
 			<div class="form-group">
 				<label for="login-password-input">Password</label>
-				<input type="password" id="login-password-input" bind:value={loginPassword} minlength="6" />
+				<input type="password" id="login-password-input" bind:value={loginPassword} minlength="6" autocomplete="password" />
 			</div>
 		</form>
 	{:else}

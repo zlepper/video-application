@@ -4,10 +4,16 @@ import { authStateStore } from '../stores/auth-state-store';
 
 const apiDomain = dev ? 'https://localhost:5001' : 'NOT IMPLEMENTED';
 
-interface BaseHttpRequest {
+export interface BaseRequestOptions {
+	customFetch?: typeof fetch;
+	accessKey?: string;
+}
+
+interface BaseHttpRequest extends BaseRequestOptions {
 	path: string;
 	withAuth: boolean;
 	queryParameters?: URLSearchParams;
+	toServerSideRenderer?: boolean;
 }
 
 interface BodyLessRequest extends BaseHttpRequest {
@@ -51,7 +57,9 @@ export type HttpResponse<T = never> = SuccessfulHttpResponse<T> | FailedHttpResp
 export async function doRequest<TResponse = never, TRequest = never>(
 	request: HttpRequest<TRequest>
 ): Promise<HttpResponse<TResponse>> {
-	const url = new URL(request.path, apiDomain);
+	const domain = request.toServerSideRenderer ? location.origin : apiDomain;
+
+	const url = new URL(request.path, domain);
 
 	const headers = new Headers();
 
@@ -78,7 +86,8 @@ export async function doRequest<TResponse = never, TRequest = never>(
 	const httpRequest = new Request(url, requestInit);
 
 	try {
-		const response = await fetch(httpRequest);
+		const actualFetch = request.customFetch ?? fetch;
+		const response = await actualFetch(httpRequest);
 		if (response.ok) {
 			const responseContent = (await response.json()) as TResponse;
 			return {

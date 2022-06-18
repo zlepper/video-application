@@ -1,6 +1,8 @@
 import adapter from '@sveltejs/adapter-auto';
 import preprocess from 'svelte-preprocess';
 
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
 	// Consult https://github.com/sveltejs/svelte-preprocess
@@ -23,7 +25,9 @@ const config = {
 						additionalData: '@use "src/variables.scss" as *;'
 					}
 				}
-			}
+			},
+
+			server: {}
 		}
 	}
 };

@@ -1,4 +1,4 @@
-import type { HttpResponse } from './http-client';
+import type { BaseRequestOptions, HttpResponse } from './http-client';
 import { doRequest } from './http-client';
 
 export interface UserInfo {
@@ -42,8 +42,9 @@ export async function doSignup(
 	});
 }
 
-export async function doWhoAmI(): Promise<HttpResponse<UserInfo>> {
+export async function doWhoAmI(options?: BaseRequestOptions): Promise<HttpResponse<UserInfo>> {
 	return await doRequest<UserInfo>({
+		...options,
 		path: 'api/auth/who-am-i',
 		method: 'GET',
 		withAuth: true

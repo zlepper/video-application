@@ -4,6 +4,7 @@
 	import { fly } from "svelte/transition";
 	import { clickOutside } from "../helpers/click-outside";
 	import { doLogout } from "../services/auth-client";
+	import { clearSsrState } from "../services/ssr-client";
 	import { authStateStore } from "../stores/auth-state-store";
 
 	const dispatch = createEventDispatcher();
@@ -16,9 +17,15 @@
 		const result = await doLogout();
 		if (result.success) {
 			authStateStore.reset();
+
+			const clearResult = await clearSsrState();
+			if (clearResult.success === false) {
+				console.error('Failed to clear SSR state', clearResult);
+			}
+
 			close();
 		} else {
-			console.error('failed to logout. wtf???', result)
+			console.error('failed to logout. wtf???', result);
 			alert('Logout failed');
 		}
 	}

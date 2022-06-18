@@ -1,6 +1,6 @@
+import { browser } from '$app/env';
 import type { StartStopNotifier, Subscriber, Unsubscriber, Updater } from 'svelte/store';
 import { writable } from 'svelte/store';
-import { browser } from '$app/env';
 
 interface LocalStorageStoredValue<T> {
 	value: T;
@@ -12,26 +12,39 @@ export interface SyncedLocalStore<T> {
 	subscribe(run: Subscriber<T>): Unsubscriber;
 }
 
+function setLocalStorageItem<T>(key: string, value: T): void {
+	if (!browser) return;
+
+	const serializedValue = JSON.stringify({ value });
+
+	localStorage.setItem(key, serializedValue);
+}
+
+function getLocalStorageItem<T>(key: string): T | null {
+	if (!browser) return null;
+
+	const serializedValue = localStorage.getItem(key);
+	if (!serializedValue) return null;
+
+	const storedValue = JSON.parse(serializedValue) as LocalStorageStoredValue<T>;
+	return storedValue?.value;
+}
+
 export function syncedLocalStore<T>(
 	keyName: string,
 	initialValue: T,
 	initialize?: StartStopNotifier<T>
 ): SyncedLocalStore<T> {
-	const existingItem = browser ? window.localStorage.getItem(keyName) : null;
+	const existingItem = getLocalStorageItem<T>(keyName);
 	if (existingItem) {
-		initialValue = (JSON.parse(existingItem) as LocalStorageStoredValue<T>).value;
+		initialValue = existingItem;
 	}
 
 	const store = writable(initialValue, initialize);
 
 	return {
 		set(value: T): void {
-			window.localStorage.setItem(
-				keyName,
-				JSON.stringify({
-					value
-				})
-			);
+			setLocalStorageItem(keyName, value);
 			store.set(value);
 		},
 		subscribe(run: Subscriber<T>): Unsubscriber {
@@ -41,12 +54,7 @@ export function syncedLocalStore<T>(
 			store.update((current) => {
 				const next = updater(current);
 
-				window.localStorage.setItem(
-					keyName,
-					JSON.stringify({
-						value: next
-					})
-				);
+				setLocalStorageItem(keyName, next);
 
 				return next;
 			});
