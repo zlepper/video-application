@@ -50,6 +50,7 @@ export interface ErrorResponse {
 export interface FailedHttpResponse {
 	success: false;
 	errorDetails: ErrorResponse;
+	rawContent: string;
 }
 
 export type HttpResponse<T = never> = SuccessfulHttpResponse<T> | FailedHttpResponse;
@@ -95,20 +96,32 @@ export async function doRequest<TResponse = never, TRequest = never>(
 				data: responseContent
 			};
 		} else {
-			const errorDetails = (await response.json()) as ErrorResponse;
+			const rawContent = await response.text();
+			let errorDetails: ErrorResponse = {
+				message: 'Unknown error',
+				error: response.status,
+				detailedErrorCode: -1
+			};
+			if (response.headers.get('content-type') === 'application/json') {
+				console.log({ rawContent });
+				errorDetails = JSON.parse(rawContent) as ErrorResponse;
+			}
 			return {
 				success: false,
-				errorDetails
+				errorDetails,
+				rawContent
 			};
 		}
 	} catch (err) {
+		console.error('Exception when executing request', err);
 		return {
 			success: false,
 			errorDetails: {
 				error: ErrorKind.Undefined,
 				detailedErrorCode: -1,
 				message: `Unknown error: ${err}`
-			}
+			},
+			rawContent: ''
 		};
 	}
 }

@@ -1,5 +1,5 @@
 import type { SsrPostArgs } from '../routes/auth/ssr';
-import type { HttpResponse } from './http-client';
+import type { BaseRequestOptions, HttpResponse } from './http-client';
 import { doRequest } from './http-client';
 
 export async function setSrrSession(userInfo: SsrPostArgs): Promise<HttpResponse> {
@@ -12,8 +12,9 @@ export async function setSrrSession(userInfo: SsrPostArgs): Promise<HttpResponse
 	});
 }
 
-export async function clearSsrState(): Promise<HttpResponse> {
+export async function clearSsrState(options?: BaseRequestOptions): Promise<HttpResponse> {
 	return await doRequest<never>({
+		...options,
 		path: 'auth/ssr',
 		method: 'DELETE',
 		toServerSideRenderer: true,

@@ -1,10 +1,13 @@
 <script context="module" lang="ts">
+  import { browser } from "$app/env";
   import type { Load, LoadOutput } from "@sveltejs/kit";
   import { doWhoAmI } from "../services/auth-client";
   import { ErrorKind } from "../services/http-client";
+  import { clearSsrState } from "../services/ssr-client";
   import { authStateStore } from "../stores/auth-state-store";
 
-  export const load: Load = async ({ fetch, session }): Promise<LoadOutput> => {
+  // noinspection JSUnusedGlobalSymbols
+	export const load: Load = async ({ fetch, session }): Promise<LoadOutput> => {
 		const { accessKey } = session;
 		let loginValid = false;
 		if (accessKey) {
@@ -24,8 +27,13 @@
 				});
 				loginValid = true;
 			} else {
+				authStateStore.reset();
 				if (result.errorDetails.error === ErrorKind.Unauthorized) {
-					authStateStore.reset();
+					if (browser) {
+						await clearSsrState({
+              customFetch: fetch,
+            });
+					}
 				} else {
 					console.error('could not verify auth state', result);
 				}
