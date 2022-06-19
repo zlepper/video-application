@@ -9,6 +9,8 @@ public class VideoApplicationDbContext : IdentityDbContext<User, Role, Guid>
 {
     public DbSet<AccessKey> AccessKeys { get; set; } = null!;
 
+    public DbSet<Channel> Channels { get; set; } = null!;
+
     public VideoApplicationDbContext(DbContextOptions options) : base(options)
     {
     }
@@ -27,6 +29,20 @@ public class VideoApplicationDbContext : IdentityDbContext<User, Role, Guid>
                 .OnDelete(DeleteBehavior.Cascade);
 
             accessKey.HasIndex(k => k.Value).IncludeProperties(p => p.UserId);
+        });
+
+        modelBuilder.Entity<Channel>(channel =>
+        {
+            channel.HasKey(c => c.Id);
+            
+            channel.HasIndex(c => c.IdentifierName).IsUnique();
+            channel.HasIndex(c => c.DisplayName).IsUnique();
+            
+            channel.HasOne(c => c.Owner)
+                .WithMany(u => u.OwnedChannels)
+                .HasPrincipalKey(u => u.Id)
+                .HasForeignKey(c => c.OwnerId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

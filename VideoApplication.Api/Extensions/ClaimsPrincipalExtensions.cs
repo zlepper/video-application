@@ -4,9 +4,16 @@ namespace VideoApplication.Api.Extensions;
 
 public static class ClaimsPrincipalExtensions
 {
-    public static string GetId(this ClaimsPrincipal principal)
+    public static Guid GetId(this ClaimsPrincipal principal)
     {
-        return GetClaimValue(principal, ClaimTypes.NameIdentifier);
+        var id = GetClaimValue(principal, ClaimTypes.NameIdentifier);
+
+        if (Guid.TryParse(id, out var guid))
+        {
+            return guid;
+        }
+        
+        throw new ArgumentException($"User Id was not a valid Guid. Got '{id}'", nameof(id));
     }
 
     public static string GetAccessKey(this ClaimsPrincipal principal)

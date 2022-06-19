@@ -32,5 +32,9 @@
     <ItemGroup>
       <ProjectReference Include="..\VideoApplication.Shared\VideoApplication.Shared.csproj" />
     </ItemGroup>
+    
+    <ItemGroup>
+      <Folder Include="Controllers\Auth" />
+    </ItemGroup>
 
 </Project>

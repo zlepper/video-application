@@ -1,14 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace VideoApplication.Api.Controllers;
+namespace VideoApplication.Api.Controllers.Auth.Requests;
 
-public class SignupRequest
+public class LoginRequest
 {
     [EmailAddress]
     public string Email { get; set; } = null!;
-    [MinLength(6)]
+    [MinLength(1)]
     public string Password { get; set; } = null!;
-
-    [MinLength(2)]
-    public string Name { get; set; } = null!;
 }

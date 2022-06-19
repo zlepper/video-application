@@ -1,22 +1,22 @@
 <script lang="ts">
+	import { session } from "$app/stores";
 	import { createEventDispatcher } from "svelte";
 	import type { UserInfo } from "../services/auth-client";
 	import { AuthClient, WellKnownAuthErrorCodes } from "../services/auth-client";
-	import { getGlobalSession } from "../services/global-session";
 	import type { FailedHttpResponse } from "../services/http-client";
 	import { ErrorKind } from "../services/http-client";
 	import { SsrClient } from "../services/ssr-client";
-	import { getAuthStateStore } from "../stores/auth-state-store";
 	import Dialog from "./Dialog.svelte";
 
-	const session = getGlobalSession();
+	$session;
+
 	const authClient = new AuthClient(session);
 	const ssrClient = new SsrClient(session);
-	const authStateStore = getAuthStateStore(session);
 
 	export let dialogSource: HTMLElement | null;
 
 	let mode: 'login' | 'signup' = 'login';
+
 
 	const dispatcher = createEventDispatcher();
 
@@ -55,11 +55,18 @@
 	}
 
 	async function persistLogin(userInfo: UserInfo) {
+
+		session.update(s => ({
+			...s,
+			accessKey: userInfo.accessKey,
+			name: userInfo.name
+		}));
+
 		const result = await ssrClient.setSrrSession({
 			token: userInfo.accessKey,
 			name: userInfo.name
 		});
-		if(result.success === false) {
+		if (result.success === false) {
 			console.error('Failed to set session', result);
 		}
 	}
@@ -71,10 +78,6 @@
 
 		if (result.success === true) {
 			requestState = 'success';
-			authStateStore.set({
-				name: result.data.name,
-				accessKey: result.data.accessKey
-			});
 
 			await persistLogin(result.data);
 
@@ -92,10 +95,6 @@
 		const result = await authClient.signup(signupEmail, signupPassword, name);
 		if (result.success === true) {
 			requestState = 'success';
-			authStateStore.set({
-				name: result.data.name,
-				accessKey: result.data.accessKey
-			});
 
 			await persistLogin(result.data);
 
@@ -116,12 +115,24 @@
 			<div class="form-group">
 				<label for="login-email-input">Email</label>
 				<!-- svelte-ignore a11y-autofocus -->
-				<input type="email" id="login-email-input" bind:value={loginEmail} autofocus autocomplete="email" />
+				<input
+					type="email"
+					id="login-email-input"
+					bind:value={loginEmail}
+					autofocus
+					autocomplete="email"
+				/>
 			</div>
 
 			<div class="form-group">
 				<label for="login-password-input">Password</label>
-				<input type="password" id="login-password-input" bind:value={loginPassword} minlength="6" autocomplete="password" />
+				<input
+					type="password"
+					id="login-password-input"
+					bind:value={loginPassword}
+					minlength="6"
+					autocomplete="password"
+				/>
 			</div>
 		</form>
 	{:else}
@@ -161,7 +172,7 @@
 					type="password"
 					bind:value={repeatPassword}
 					minlength="6"
-					aria-invalid="{passwordNotRepeated}"
+					aria-invalid={passwordNotRepeated}
 					aria-errormessage="password-does-not-match-error-message"
 					autocomplete="new-password"
 				/>

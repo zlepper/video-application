@@ -5,12 +5,16 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NodaTime;
-using VideoApplication.Api.Controllers.Responses;
+using Rebus.Bus;
+using VideoApplication.Api.Controllers.Auth.Requests;
+using VideoApplication.Api.Controllers.Auth.Responses;
 using VideoApplication.Api.Database;
 using VideoApplication.Api.Database.Models;
 using VideoApplication.Api.Exceptions;
+using VideoApplication.Api.Exceptions.Auth;
 using VideoApplication.Api.Extensions;
 using VideoApplication.Api.Services;
+using VideoApplication.Api.Shared.Events;
 
 namespace VideoApplication.Api.Controllers;
 
@@ -23,15 +27,17 @@ public class AuthController : ControllerBase
     private readonly UserManager<User> _userManager;
     private readonly VideoApplicationDbContext _context;
     private readonly IClock _clock;
+    private readonly IBus _bus;
 
     public AuthController(ILogger<AuthController> logger, UserManager<User> userManager,
-        SignInManager<User> signInManager, VideoApplicationDbContext context, IClock clock)
+        SignInManager<User> signInManager, VideoApplicationDbContext context, IClock clock, IBus bus)
     {
         _logger = logger;
         _userManager = userManager;
         _signInManager = signInManager;
         _context = context;
         _clock = clock;
+        _bus = bus;
     }
 
     [HttpPost("login")]
@@ -72,6 +78,7 @@ public class AuthController : ControllerBase
         var result = await _userManager.CreateAsync(user, request.Password);
         if (result.Succeeded)
         {
+            await _bus.Publish(new UserCreated(user.Id, user.Name, user.Email));
             return await CreateAuthResponse(user);
         }
         else
@@ -94,7 +101,7 @@ public class AuthController : ControllerBase
     [Authorize]
     public async Task<UserInfo> WhoAmI()
     {
-        var user = await _userManager.FindByIdAsync(User.GetId());
+        var user = await _userManager.FindByIdAsync(User.GetId().ToString());
 
         var validated = await _userManager.IsEmailConfirmedAsync(user);
 

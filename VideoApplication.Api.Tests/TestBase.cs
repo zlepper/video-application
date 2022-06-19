@@ -1,10 +1,15 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using Rebus.Bus;
 using Rebus.TestHelpers;
+using VideoApplication.Api.Controllers;
+using VideoApplication.Api.Controllers.Auth.Requests;
+using VideoApplication.Api.Controllers.Auth.Responses;
 using VideoApplication.Api.Database;
 using VideoApplication.Api.Extensions;
 
@@ -38,6 +43,8 @@ public abstract class TestBase
 
         return serviceProvider;
     }
+
+    protected FakeBus Bus => ServiceProvider.GetRequiredService<FakeBus>();
     
     protected virtual void AddMoreDependencies(IServiceCollection services) {}
 
@@ -100,8 +107,55 @@ public abstract class TestBase<T> : TestBase where T : class
     protected override void AddMoreDependencies(IServiceCollection services)
     {
         services.TryAddScoped<T>();
+        services.TryAddScoped<AuthController>();
         base.AddMoreDependencies(services);
     }
 
-    protected T Service => ServiceProvider.GetRequiredService<T>();
+    protected virtual bool ClearContextBeforeInvokingService => true;
+    
+    protected T Service
+    {
+        get
+        {
+            if (ClearContextBeforeInvokingService)
+            {
+                DbContext.ChangeTracker.Clear();
+                Bus.Clear();
+            }
+            
+            return ServiceProvider.GetRequiredService<T>();
+        }
+    }
+
+    protected async Task<UserInfo> CreateTestUser()
+    {
+        return await ServiceProvider.GetRequiredService<AuthController>().Signup(new SignupRequest()
+        {
+            Email = "test@example.com",
+            Name = "TestUser",
+            Password = "SuperDuperSafe"
+        });
+    }
+
+    protected void SetUserContext(UserInfo user)
+    {
+        if (Service is not ControllerBase controller)
+        {
+            throw new Exception($"Service is not a Controller. Either make {typeof(T)} extend {typeof(ControllerBase)} or pass user context information manually.");
+        }
+        
+        var httpContext = new DefaultHttpContext()
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity(new []
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+            }))
+        };
+
+        controller.ControllerContext = new ControllerContext()
+        {
+            HttpContext = httpContext
+        };
+
+    }
 }

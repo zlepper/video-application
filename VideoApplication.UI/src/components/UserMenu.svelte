@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from "$app/navigation";
 	import { createEventDispatcher } from "svelte";
 	import { quintOut } from "svelte/easing";
 	import { fly } from "svelte/transition";
@@ -6,11 +7,9 @@
 	import { AuthClient } from "../services/auth-client";
 	import { getGlobalSession } from "../services/global-session";
 	import { SsrClient } from "../services/ssr-client";
-	import { getAuthStateStore } from "../stores/auth-state-store";
 
 	const session = getGlobalSession();
 	let authClient = new AuthClient(session);
-	let authStateStore = getAuthStateStore(session);
 	let ssrClient = new SsrClient(session);
 
 	const dispatch = createEventDispatcher();
@@ -22,12 +21,19 @@
 	async function logout() {
 		const result = await authClient.logout();
 		if (result.success) {
-			authStateStore.reset();
+			session.update((s) => ({
+				...s,
+				accessKey: null,
+				name: null
+			}));
 
 			const clearResult = await ssrClient.clearSsrState();
 			if (clearResult.success === false) {
 				console.error('Failed to clear SSR state', clearResult);
 			}
+			await goto('/', {
+				replaceState: true
+			});
 
 			close();
 		} else {
@@ -44,9 +50,7 @@
 	out:fly={{ duration: 300, easing: quintOut, y: 20 }}
 	use:clickOutside
 >
-	<a class="menu-button" href="/channel-manager">
-		Channel Manager
-	</a>
+	<a class="menu-button" href="/channel-manager" on:click={close}>Channel Manager</a>
 	<button class="menu-button" on:click={logout} type="button">Logout</button>
 </div>
 
@@ -55,7 +59,7 @@
 		position: fixed;
 		top: $top-bar-height + 1em;
 		right: 1em;
-		background-color: var(--background-color);
+		background-color: var(--content-background-color);
 		box-shadow: 0 0 15px transparentize($black, 0.7);
 		border-radius: 3px;
 		border: var(--theme-color) solid 1px;

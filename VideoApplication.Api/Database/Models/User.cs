@@ -7,4 +7,6 @@ public class User : IdentityUser<Guid>
     public string Name { get; set; } = null!;
 
     public ICollection<AccessKey> AccessKeys { get; set; } = null!;
+
+    public ICollection<Channel> OwnedChannels { get; set; } = null!;
 }

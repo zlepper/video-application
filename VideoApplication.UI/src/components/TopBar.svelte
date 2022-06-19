@@ -1,11 +1,11 @@
 <script lang="ts">
+	import { derived } from "svelte/store";
 	import { getGlobalSession } from "../services/global-session";
-	import { getIsLoggedInStore } from "../stores/auth-state-store";
 	import LoginDialog from "./LoginDialog.svelte";
 	import UserMenu from "./UserMenu.svelte";
 
 	const session = getGlobalSession();
-	const isLoggedIn = getIsLoggedInStore(session);
+	const isLoggedIn = derived(session, s => !!s.accessKey)
 
 	let loginOpen = false;
 

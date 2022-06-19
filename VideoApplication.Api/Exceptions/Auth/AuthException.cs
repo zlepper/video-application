@@ -1,6 +1,6 @@
 using VideoApplication.Api.Middleware;
 
-namespace VideoApplication.Api.Exceptions;
+namespace VideoApplication.Api.Exceptions.Auth;
 
 
 

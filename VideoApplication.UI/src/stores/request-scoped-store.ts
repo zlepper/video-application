@@ -30,6 +30,7 @@ function getRequestScope(session: App.Session): StoreKey {
 		if (browser) {
 			return globalSymbol;
 		} else {
+			console.log({ session });
 			throw new Error('Doing SSR request without having the store symbol set on the session.');
 		}
 	}
@@ -84,6 +85,5 @@ export function derivedScopeStore<S extends Stores, T>(
 }
 
 export function removeScopedStores(storeKey: StoreKey): void {
-	console.log('removing scoped stores', storeKey);
 	scopedMap.delete(storeKey);
 }

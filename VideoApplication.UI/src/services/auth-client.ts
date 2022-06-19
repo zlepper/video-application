@@ -1,3 +1,4 @@
+import type { Readable } from 'svelte/store';
 import type { BaseRequestOptions, HttpResponse } from './http-client';
 import { HttpClient } from './http-client';
 
@@ -16,7 +17,7 @@ export enum WellKnownAuthErrorCodes {
 export class AuthClient {
 	private _client: HttpClient;
 
-	constructor(session: App.Session) {
+	constructor(session: Readable<App.Session>) {
 		this._client = new HttpClient(session);
 	}
 

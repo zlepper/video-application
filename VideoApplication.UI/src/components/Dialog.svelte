@@ -62,7 +62,7 @@
 		grid-template-rows: 3em 1fr 3em;
 		grid-auto-columns: 2em 1fr 2em;
 		grid-template-areas: '_ header-title header-close' 'body body body' 'footer footer footer';
-		background-color: var(--background-color);
+		background-color: var(--content-background-color);
 		border: 1px solid var(--theme-color);
 		width: 25em;
 		box-shadow: 0 0 15px transparentize($black, 0.7);

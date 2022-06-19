@@ -1,4 +1,4 @@
-namespace VideoApplication.Api.Exceptions;
+namespace VideoApplication.Api.Exceptions.Auth;
 
 public enum DetailedAuthErrorCode
 {

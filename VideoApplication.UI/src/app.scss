@@ -7,6 +7,7 @@ body {
   --top-bar-color: #0e1111;
   --top-bar-text-color: #fefefe;
   --background-color: #{$light-background-color};
+  --content-background-color: #{lighten($light-background-color, 3%)};
   --form-input-color: #fdfdfd;
 
   --border-color: #ebebeb;

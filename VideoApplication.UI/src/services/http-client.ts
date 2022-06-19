@@ -1,6 +1,6 @@
 import { dev } from '$app/env';
+import type { Readable } from 'svelte/store';
 import { get } from 'svelte/store';
-import { getAuthStateStore } from '../stores/auth-state-store';
 
 const apiDomain = dev ? 'https://localhost:5001' : 'NOT IMPLEMENTED';
 
@@ -56,7 +56,15 @@ export interface FailedHttpResponse {
 export type HttpResponse<T = never> = SuccessfulHttpResponse<T> | FailedHttpResponse;
 
 export class HttpClient {
-	constructor(private session: App.Session) {}
+	private _sessionValue: App.Session;
+
+	constructor(session: Readable<App.Session>) {
+		if (typeof session.subscribe !== 'function') {
+			throw new Error('Invalid session type was passed to the http client');
+		}
+
+		this._sessionValue = get(session);
+	}
 
 	public async doRequest<TResponse = never, TRequest = never>(
 		request: HttpRequest<TRequest>
@@ -68,10 +76,10 @@ export class HttpClient {
 		const headers = new Headers();
 
 		if (request.withAuth) {
-			const authState = get(getAuthStateStore(this.session));
+			const { accessKey } = this._sessionValue;
 
-			if (authState.accessKey) {
-				headers.set('Authorization', `Bearer ${authState.accessKey}`);
+			if (accessKey) {
+				headers.set('Authorization', `Bearer ${accessKey}`);
 			}
 		}
 

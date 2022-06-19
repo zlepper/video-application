@@ -31,6 +31,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 // noinspection JSUnusedGlobalSymbols
 export const getSession: GetSession = async (event) => {
 	const storeSymbol = event.locals.storeSymbol;
+	console.log('getting session', storeSymbol);
 	const cookie = event.request.headers.get('cookie') ?? '';
 
 	const cookies = parseCookie(cookie);

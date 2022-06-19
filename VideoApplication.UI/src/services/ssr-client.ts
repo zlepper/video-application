@@ -1,3 +1,4 @@
+import type { Readable } from 'svelte/store';
 import type { SsrPostArgs } from '../routes/auth/ssr';
 import type { BaseRequestOptions, HttpResponse } from './http-client';
 import { HttpClient } from './http-client';
@@ -5,7 +6,7 @@ import { HttpClient } from './http-client';
 export class SsrClient {
 	private _client: HttpClient;
 
-	constructor(session: App.Session) {
+	constructor(session: Readable<App.Session>) {
 		this._client = new HttpClient(session);
 	}
 

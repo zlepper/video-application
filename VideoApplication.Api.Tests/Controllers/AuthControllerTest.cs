@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Net.Http.Headers;
 using VideoApplication.Api.Controllers;
+using VideoApplication.Api.Controllers.Auth.Requests;
 using VideoApplication.Api.Exceptions;
+using VideoApplication.Api.Exceptions.Auth;
 using VideoApplication.Api.Services;
 
 namespace VideoApplication.Api.Tests.Controllers;
