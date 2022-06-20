@@ -1,10 +1,10 @@
 <script lang="ts">
 	import * as Prism from "prismjs";
-	import "prismjs/components/prism-markdown";
 	import { createEditor, Node, Text } from "slate";
 	import { Editable, Slate, withSvelte } from "svelte-slate";
 	import MarkdownLeaf from "./MarkdownLeaf.svelte";
 	import type { EditorLeaf } from "./models";
+	import "./prism-markdown-subset";
 
 	const editor = withSvelte(createEditor());
 

@@ -1,7 +1,7 @@
 <script lang="ts">
   import * as Prism from "prismjs";
-  import "prismjs/components/prism-markdown";
   import MarkdownElement from "./MarkdownElement.svelte";
+  import "./prism-markdown-subset";
 
   export let markdownText = '';
 
@@ -9,7 +9,7 @@
 
 </script>
 
-{console.log(content) ?? ''}
+{console.log('markdown content', content) ?? ''}
 
 <MarkdownElement elements="{content}" />
 
