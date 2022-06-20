@@ -7,6 +7,11 @@
 	import { ErrorKind } from "../services/http-client";
 	import { SsrClient } from "../services/ssr-client";
 	import Dialog from "./Dialog.svelte";
+	import FormEmailInput from "./forms/FormEmailInput.svelte";
+	import FormGroup from "./forms/FormGroup.svelte";
+	import FormLabel from "./forms/FormLabel.svelte";
+	import FormPasswordInput from "./forms/FormPasswordInput.svelte";
+	import FormStringInput from "./forms/FormStringInput.svelte";
 
 	$session;
 
@@ -112,76 +117,43 @@
 
 	{#if mode === 'login'}
 		<form id="login-form" on:submit|preventDefault={login}>
-			<div class="form-group">
-				<label for="login-email-input">Email</label>
-				<!-- svelte-ignore a11y-autofocus -->
-				<input
-					type="email"
-					id="login-email-input"
-					bind:value={loginEmail}
-					autofocus
-					autocomplete="email"
-				/>
-			</div>
+			<FormGroup>
+				<FormLabel>Email</FormLabel>
+				<FormEmailInput bind:value={loginEmail} autocomplete="email" />
+			</FormGroup>
 
-			<div class="form-group">
-				<label for="login-password-input">Password</label>
-				<input
-					type="password"
-					id="login-password-input"
-					bind:value={loginPassword}
-					minlength="6"
-					autocomplete="password"
-				/>
-			</div>
+			<FormGroup>
+				<FormLabel>Password</FormLabel>
+				<FormPasswordInput bind:value={loginPassword} autocomplete="password" />
+			</FormGroup>
 		</form>
 	{:else}
 		<form id="signup-form" on:submit|preventDefault={signup}>
-			<div class="form-group">
-				<label for="signup-email-input">Email</label>
-				<!-- svelte-ignore a11y-autofocus -->
-				<input
-					type="email"
-					id="signup-email-input"
-					bind:value={signupEmail}
-					autofocus
-					autocomplete="email"
-				/>
-			</div>
+			<FormGroup>
+				<FormLabel>Email</FormLabel>
+				<FormEmailInput bind:value={signupEmail} autocomplete="email" />
+			</FormGroup>
 
-			<div class="form-group">
-				<label for="signup-name-input">Name</label>
-				<input id="signup-name-input" bind:value={name} autocomplete="name" />
-			</div>
+			<FormGroup>
+				<FormLabel>Name</FormLabel>
+				<FormStringInput bind:value={name} autocomplete="name" />
+			</FormGroup>
 
-			<div class="form-group">
-				<label for="signup-password-input">Password</label>
-				<input
-					id="signup-password-input"
-					type="password"
-					bind:value={signupPassword}
-					minlength="6"
-					autocomplete="new-password"
-				/>
-			</div>
+			<FormGroup>
+				<FormLabel>Password</FormLabel>
+				<FormPasswordInput bind:value={signupPassword} autocomplete="new-password" />
+			</FormGroup>
 
-			<div class="form-group">
-				<label for="repeat-signup-password-input">Repeat password</label>
-				<input
-					id="repeat-signup-password-input"
-					type="password"
-					bind:value={repeatPassword}
-					minlength="6"
-					aria-invalid={passwordNotRepeated}
-					aria-errormessage="password-does-not-match-error-message"
-					autocomplete="new-password"
-				/>
+			<FormGroup>
+				<FormLabel>Repeat password</FormLabel>
+				<FormPasswordInput bind:value={repeatPassword} autocomplete="new-password" />
+
 				{#if passwordNotRepeated}
 					<span class="validation-error" id="password-does-not-match-error-message">
 						Passwords does not match.
 					</span>
 				{/if}
-			</div>
+			</FormGroup>
 		</form>
 	{/if}
 
@@ -233,10 +205,6 @@
 </Dialog>
 
 <style lang="scss">
-	.form-group {
-		@extend %form-group;
-	}
-
 	.footer {
 		display: flex;
 		flex-direction: row;

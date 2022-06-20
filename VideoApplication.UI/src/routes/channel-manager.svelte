@@ -39,36 +39,34 @@
 </script>
 
 <script lang="ts">
-import MarkdownText from "../components/markdown/MarkdownText.svelte";
+	import ChannelListItem from '../components/ChannelListItem.svelte';
 </script>
 
 <div class="content">
 	{#if status === 'loading'}
-		<div class="center">Loading your channels, hang on..</div>
+		<div >Loading your channels, hang on..</div>
 	{:else if status === 'loaded'}
-		{#each channels as channel (channel.id)}
-
-			<div class="channel-card">
-				<div class="picture"></div>
-				<div class="title">{channel.displayName}</div>
-				<div class="description">
-					<MarkdownText markdownText="{channel.description}" />
-				</div>
-			</div>
-
-
-		{:else}
-			<div class="no-channels center">
+		{#if channels.length === 0}
+			<div class="no-channels">
 				You don't have any channels associated with you. Do you want to create one now?
 
+				<a type="button" class="create-channel-button" href="/channel-manager/new">
+					Create new channel
+				</a>
 			</div>
-		{/each}
+		{:else}
+			<div class="channel-list">
+				{#each channels as channel (channel.id)}
+					<ChannelListItem {channel} />
+				{/each}
 
-		<a type="button" class="create-channel-button" href="/channel-manager/new">
-			Create new channel
-		</a>
+				<a type="button" class="create-channel-button" href="/channel-manager/new">
+					Create new channel
+				</a>
+			</div>
+		{/if}
 	{:else}
-		<div class="error center">
+		<div class="error">
 			Error occurred when loading channels: {errorMessage}
 		</div>
 	{/if}
@@ -79,11 +77,8 @@ import MarkdownText from "../components/markdown/MarkdownText.svelte";
 		grid-area: content;
 		display: grid;
 		padding: 2em;
-	}
-
-	.center {
-		justify-self: center;
-		align-self: center;
+		justify-content: center;
+		align-items: center;
 	}
 
 	.create-channel-button {
@@ -95,34 +90,11 @@ import MarkdownText from "../components/markdown/MarkdownText.svelte";
 		color: var(--error-color);
 	}
 
-	.channel-card {
-		justify-self: center;
-		display: grid;
-		padding: 1.5em;
-		width: 800px;
-		height: 190px;
-		grid-template-rows: 55px 1fr;
-		grid-auto-columns: 55px 1fr;
-		grid-gap: 1em;
-		grid-template-areas: 'picture title' 'description description';
-		background-color: var(--content-background-color);
-		border-radius: 3px;
-		border: 1px solid var(--border-color);
-
-		.picture {
-			border-radius: 50%;
-			grid-area: picture;
-			background-color: #d9d9d9;
-		}
-
-		.title {
-			grid-area: title;
-			background-color: #d9d9d9;
-		}
-
-		.description {
-			grid-area: description;
-			background-color: #d9d9d9;
-		}
+	.channel-list {
+		width: 60em;
+		display: flex;
+		flex-direction: column;
+		gap: 1em;
 	}
+
 </style>

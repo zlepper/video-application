@@ -1,0 +1,16 @@
+%input {
+  border: 1px solid var(--border-color);
+  height: 38px;
+  padding: 0 10px;
+  transition: border-bottom-color 100ms ease-in-out;
+  border-radius: 3px;
+  background-color: var(--form-input-color);
+
+  &:focus-visible {
+    outline: none;
+  }
+
+  &:focus {
+    border-bottom-color: var(--theme-color);
+  }
+}

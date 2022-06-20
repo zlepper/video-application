@@ -7,8 +7,8 @@ body {
   --top-bar-color: #0e1111;
   --top-bar-text-color: #fefefe;
   --background-color: #{$light-background-color};
-  --content-background-color: #{lighten($light-background-color, 3%)};
-  --form-input-color: #fdfdfd;
+  --content-background-color: #{lighten($light-background-color, 2%)};
+  --form-input-color: #{lighten($light-background-color, 5%)};
 
   --border-color: #ebebeb;
   --error-color: #f01414;

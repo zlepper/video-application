@@ -27,7 +27,7 @@ $light-background-color: #fafafa;
     margin-bottom: 5px;
   }
 
-  input {
+  input, textarea {
     border: 1px solid var(--border-color);
     height: 38px;
     padding: 0 10px;
@@ -42,6 +42,12 @@ $light-background-color: #fafafa;
     &:focus {
       border-bottom-color: var(--theme-color);
     }
+  }
+
+  textarea {
+    min-height: 7em;
+    height: 7em;
+    resize: vertical;
   }
 }
 

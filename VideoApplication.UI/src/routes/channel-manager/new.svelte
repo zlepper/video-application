@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { browser } from "$app/env";
 	import { session } from "$app/stores";
-	import MarkdownEditor from "../../components/markdown/MarkdownEditor.svelte";
+	import FormGroup from "../../components/forms/FormGroup.svelte";
+	import FormLabel from "../../components/forms/FormLabel.svelte";
+	import FormStringInput from "../../components/forms/FormStringInput.svelte";
+	import FormTextArea from "../../components/forms/FormTextArea.svelte";
 	import { ensureAuthorized } from "../../helpers/ensure-authorized";
 	import { ChannelClient, WellKnownChannelErrorCodes } from "../../services/channel-client";
 	import { ErrorKind } from "../../services/http-client";
@@ -14,7 +17,7 @@
 
 	let displayName = 'My Channel';
 	let identifierName = 'my-channel';
-	let description = 'You **channel** _description_ here';
+	let description = 'Your channel description here';
 
 	let baseUrl = browser ? location.origin : '';
 
@@ -56,43 +59,31 @@
 
 <div class="content">
 	<form on:submit|preventDefault={createChannel}>
-		<div class="form-group">
-			<label for="new-channel-name">Channel Display Name</label>
-			<input
-				bind:value={displayName}
-				id="new-channel-name"
-				maxlength="100"
-				minlength="5"
-				pattern="\S.+\S"
-			/>
-		</div>
-		<div class="form-group">
-			<label for="new-channel-slug">Channel slug</label>
-			<input
+		<FormGroup>
+			<FormLabel>Channel Display Name</FormLabel>
+			<FormStringInput bind:value={displayName} maxlength="100" minlength="5" pattern="\S.+\S" />
+		</FormGroup>
+		<FormGroup>
+			<FormLabel>Channel slug</FormLabel>
+			<FormStringInput
 				bind:value={identifierName}
-				id="new-channel-slug"
 				maxlength="50"
 				minlength="5"
 				pattern="[a-zA-Z0-9][a-zA-Z0-9 \-]+[a-zA-Z0-9]"
 			/>
 			{#if identifierName}
 				<span>
-					Your channel will be available at <span class="url-display">{finalUrl}</span>
+					Your channel will be available at
+					<span class="url-display">{finalUrl}</span>
 					.
 				</span>
 			{/if}
-		</div>
+		</FormGroup>
 
-		<div class="form-group">
-			<span>Channel description</span>
-			<div class="description-input">
-				{#if browser}
-					<MarkdownEditor bind:value={description} />
-				{:else}
-					{description}
-				{/if}
-			</div>
-		</div>
+		<FormGroup class="form-group">
+			<FormLabel>Channel description</FormLabel>
+			<FormTextArea bind:value={description} />
+		</FormGroup>
 
 		{#if error && requestState === 'nothing'}
 			<div class="error-message">
@@ -119,7 +110,7 @@
 	}
 
 	.error-message {
-		color: var(--error-color)
+		color: var(--error-color);
 	}
 
 	.next-button {
@@ -130,20 +121,7 @@
 		width: 40em;
 	}
 
-	.form-group {
-		@extend %form-group;
-	}
-
 	.url-display {
 		font-family: monospace;
-	}
-
-	.description-input {
-		border: 1px solid var(--border-color);
-		min-height: 5em;
-		padding: 10px;
-		transition: border-bottom-color 100ms ease-in-out;
-		border-radius: 3px;
-		background-color: var(--form-input-color);
 	}
 </style>
