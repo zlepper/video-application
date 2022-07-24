@@ -8,6 +8,9 @@ module.exports = {
       fontFamily: {
         sans: ['Inter var', ...defaultTheme.fontFamily.sans],
       },
+      gridTemplateColumns: {
+        sidebar: '16rem 1fr'
+      }
     },
   },
   plugins: [

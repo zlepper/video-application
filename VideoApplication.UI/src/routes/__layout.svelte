@@ -1,16 +1,18 @@
 <script context="module" lang="ts">
-  import { browser } from "$app/env";
-  import { session as sessionStore } from "$app/stores";
-  import type { Load, LoadOutput } from "@sveltejs/kit";
-  import { readable } from "svelte/store";
-  import { AuthClient } from "../services/auth-client";
-  import { ErrorKind } from "../services/http-client";
-  import { SsrClient } from "../services/ssr-client";
+	import { browser } from "$app/env";
+	import type { Load, LoadOutput } from "@sveltejs/kit";
+	import { readable } from "svelte/store";
+	import type { Channel } from "../models/channel";
+	import { AuthClient } from "../services/auth-client";
+	import { ChannelClient } from "../services/channel-client";
+	import { ErrorKind } from "../services/http-client";
+	import { SsrClient } from "../services/ssr-client";
 
-  // noinspection JSUnusedGlobalSymbols
+	// noinspection JSUnusedGlobalSymbols
 	export const load: Load = async ({ fetch, session }): Promise<LoadOutput> => {
 		const { accessKey } = session;
 		let loginValid = false;
+		let channels: Channel[] = [];
 		if (accessKey) {
 			const authClient = new AuthClient(readable(session));
 
@@ -21,11 +23,6 @@
 			if (result.success === true) {
 				loginValid = true;
 			} else {
-				sessionStore.set({
-					...session,
-					accessKey: null,
-					name: null
-				});
 				if (result.errorDetails.error === ErrorKind.Unauthorized) {
 					if (browser) {
 						const ssrClient = new SsrClient(readable(session));
@@ -37,12 +34,26 @@
 					console.error('could not verify auth state', result);
 				}
 			}
+
+			if (loginValid) {
+				const channelClient = new ChannelClient(readable(session));
+				const channelResponse = await channelClient.getMyChannels({
+					customFetch: fetch
+				});
+				if (channelResponse.success === true) {
+					channels = channelResponse.data;
+				}
+			}
 		}
 
 		return {
 			cache: {
 				private: loginValid,
 				maxage: 300
+			},
+			props: {
+				purgeSessionStore: !loginValid,
+				channels
 			}
 		};
 	};
@@ -50,12 +61,63 @@
 
 <script lang="ts">
 	import '../app.scss';
+	import { onMount } from 'svelte';
 	import NavSideBar from '../components/NavSideBar.svelte';
 	import TopBar from '../components/TopBar.svelte';
+	import { session } from '$app/stores';
+	import { getMyChannels } from '../stores/my-channels-store';
+
+	export let purgeSessionStore = false;
+
+	export let channels: Channel[] = [];
+
+	const channelStore = getMyChannels();
+
+	$: channelStore.set(channels);
+
+
+	onMount(() => {
+		if (purgeSessionStore) {
+			session.update((current) => ({
+				...current,
+				accessKey: null,
+				name: null
+			}));
+		}
+	});
 </script>
 
-<TopBar />
+<div class="page min-h-full h-full">
+	<div class="top-bar">
+		<TopBar />
+	</div>
 
-<NavSideBar />
+	<div class="side-bar">
+		<NavSideBar />
+	</div>
 
-<slot />
+	<div class="content">
+		<slot />
+	</div>
+</div>
+
+<style lang="scss">
+	.page {
+		display: grid;
+		grid-template-columns: 16rem 1fr;
+		grid-template-rows: 4rem 1fr;
+		grid-template-areas: 'top-bar top-bar' 'side-bar content';
+	}
+
+	.top-bar {
+		grid-area: top-bar;
+	}
+	.side-bar {
+		grid-area: side-bar;
+	}
+	.content {
+		grid-area: content;
+		overflow-y: auto;
+		display: grid;
+	}
+</style>

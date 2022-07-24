@@ -3,4 +3,5 @@ export interface Channel {
 	identifierName: string;
 	displayName: string;
 	description: string;
+	isOwner: boolean;
 }
