@@ -6,7 +6,7 @@ export interface SsrPostArgs extends Record<string, string> {
 }
 
 // noinspection JSUnusedGlobalSymbols
-export async function post(event: RequestEvent<SsrPostArgs>): Promise<RequestHandlerOutput> {
+export async function POST(event: RequestEvent<SsrPostArgs>): Promise<RequestHandlerOutput> {
 	const { token, name } = await event.request.json();
 
 	const headers = new Headers();
@@ -26,7 +26,7 @@ export async function post(event: RequestEvent<SsrPostArgs>): Promise<RequestHan
 }
 
 // noinspection JSUnusedGlobalSymbols
-export function del(): RequestHandlerOutput {
+export function DELETE(): RequestHandlerOutput {
 	const headers = new Headers();
 
 	headers.append('Set-Cookie', `token=; HttpOnly; SameSite=Strict; Max-Age=0; Path=/`);

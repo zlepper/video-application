@@ -113,8 +113,8 @@ export class HttpClient {
 					error: response.status,
 					detailedErrorCode: -1
 				};
-				if (response.headers.get('content-type') === 'application/json') {
-					console.log({ rawContent });
+				const contentTypeHeader = response.headers.get('content-type');
+				if (contentTypeHeader?.startsWith('application/json')) {
 					errorDetails = JSON.parse(rawContent) as ErrorResponse;
 				}
 				return {
