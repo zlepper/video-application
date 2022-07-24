@@ -1,14 +1,7 @@
 <script context="module" lang="ts">
 	import type { Load, LoadOutput } from "@sveltejs/kit";
 	import { readable } from "svelte/store";
-	import type { Channel } from "../models/channel";
 	import { ChannelClient } from "../services/channel-client";
-
-	let channels: Channel[];
-
-	let status: 'loading' | 'loaded' | 'error' = 'loading';
-
-	let errorMessage: string;
 
 	// noinspection JSUnusedGlobalSymbols
 	export const load: Load = async ({ session, fetch }): Promise<LoadOutput> => {
@@ -26,26 +19,27 @@
 			customFetch: fetch
 		});
 
-		if (response.success === true) {
-			status = 'loaded';
-			channels = response.data;
-		} else {
-			status = 'error';
-			errorMessage = response.errorDetails.message;
-		}
-
-		return {};
+		return {
+			status: 200,
+			props: {
+				channels: response.success === true ? response.data : [],
+				errorMessage: response.success === false ? response.errorDetails.message : ''
+			}
+		};
 	};
 </script>
 
 <script lang="ts">
 	import ChannelListItem from '../components/ChannelListItem.svelte';
+	import type { Channel } from '../models/channel';
+
+	export let channels: Channel[];
+
+	export let errorMessage: string;
 </script>
 
 <div class="content">
-	{#if status === 'loading'}
-		<div >Loading your channels, hang on..</div>
-	{:else if status === 'loaded'}
+	{#if !errorMessage}
 		{#if channels.length === 0}
 			<div class="no-channels">
 				You don't have any channels associated with you. Do you want to create one now?
@@ -96,5 +90,4 @@
 		flex-direction: column;
 		gap: 1em;
 	}
-
 </style>

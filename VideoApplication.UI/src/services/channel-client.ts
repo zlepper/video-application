@@ -11,7 +11,8 @@ export interface CreateChannelRequest {
 
 export enum WellKnownChannelErrorCodes {
 	ChannelWithSameNameAlreadyExists = 1,
-	NotChannelOwner = 2
+	NotChannelOwner = 2,
+	ChannelNotFound = 3
 }
 
 export class ChannelClient {
@@ -27,6 +28,18 @@ export class ChannelClient {
 			withAuth: true,
 			method: 'GET',
 			path: 'api/channels'
+		});
+	}
+
+	public async getChannel(
+		channelIdentifier: string,
+		options?: BaseRequestOptions
+	): Promise<HttpResponse<Channel>> {
+		return await this._httpClient.doRequest<Channel>({
+			...options,
+			withAuth: true,
+			method: 'GET',
+			path: `api/channels/${channelIdentifier}`
 		});
 	}
 

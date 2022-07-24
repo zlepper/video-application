@@ -28,12 +28,15 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddCustomIdentity(this IServiceCollection services)
     {
         
+        
         services.AddIdentity<User, Role>(i =>
             {
                 i.User.RequireUniqueEmail = true;
                 i.Password.RequireDigit = false;
                 i.Password.RequiredUniqueChars = 1;
                 i.Password.RequireNonAlphanumeric = false;
+                i.Password.RequireUppercase = false;
+                i.Password.RequireLowercase = false;
             })
             .AddEntityFrameworkStores<VideoApplicationDbContext>()
             .AddDefaultTokenProviders();

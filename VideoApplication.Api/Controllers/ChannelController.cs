@@ -73,6 +73,21 @@ public class ChannelController : ControllerBase
         return channels.Select(CreateResponse).ToList();
     }
 
+    [HttpGet("{channelSlug}")]
+    [AllowAnonymous]
+    [Authorize]
+    public async Task<ChannelResponse> GetChannel(string channelSlug, CancellationToken cancellationToken = default)
+    {
+        var channel = await _dbContext.Channels.FirstOrDefaultAsync(c => c.IdentifierName == channelSlug, cancellationToken);
+
+        if (channel == null)
+        {
+            throw new ChannelNotFoundException(channelSlug);
+        }
+
+        return CreateResponse(channel);
+    }
+
     [HttpDelete("{id:guid}")]
     [Authorize]
     public async Task DeleteChannel(Guid id, CancellationToken cancellationToken = default)
@@ -98,8 +113,9 @@ public class ChannelController : ControllerBase
 
     }
 
-    private static ChannelResponse CreateResponse(Channel channel)
+    private ChannelResponse CreateResponse(Channel channel)
     {
-        return new ChannelResponse(channel.Id, channel.IdentifierName, channel.DisplayName, channel.Description);
+        var userId = User.GetIdOrNull();
+        return new ChannelResponse(channel.Id, channel.IdentifierName, channel.DisplayName, channel.Description, channel.OwnerId == userId);
     }
 }
