@@ -1,14 +1,13 @@
 <script lang="ts">
 	import { goto } from "$app/navigation";
+	import { session } from "$app/stores";
 	import { createEventDispatcher } from "svelte";
 	import { quintOut } from "svelte/easing";
 	import { fly } from "svelte/transition";
 	import { clickOutside } from "../helpers/click-outside";
 	import { AuthClient } from "../services/auth-client";
-	import { getGlobalSession } from "../services/global-session";
 	import { SsrClient } from "../services/ssr-client";
 
-	const session = getGlobalSession();
 	let authClient = new AuthClient(session);
 	let ssrClient = new SsrClient(session);
 
@@ -44,37 +43,29 @@
 </script>
 
 <div
-	class="user-menu"
-	in:fly={{ duration: 300, easing: quintOut, y: -20 }}
+	aria-labelledby="user-menu-button"
+	aria-orientation="vertical"
+	class="origin-top-right absolute right-0 w-48 mr-4 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none"
 	on:outclick={close}
-	out:fly={{ duration: 300, easing: quintOut, y: 20 }}
+	role="menu"
+	tabindex="-1"
+	transition:fly={{ duration: 300, easing: quintOut, y: 20 }}
 	use:clickOutside
 >
-	<a class="menu-button" href="/channel-manager" on:click={close}>Channel Manager</a>
-	<button class="menu-button" on:click={logout} type="button">Logout</button>
+	<!-- Active: "bg-gray-100", Not Active: "" -->
+	<a
+		class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+		href="/channel-manager"
+		on:click={close}
+	>
+		Channel Manager
+	</a>
+	<button
+		class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 w-full items-start text-start"
+		on:click={logout}
+		type="button"
+	>
+		Logout
+	</button>
 </div>
 
-<style lang="scss">
-	.user-menu {
-		position: fixed;
-		top: $top-bar-height + 1em;
-		right: 1em;
-		background-color: var(--content-background-color);
-		box-shadow: 0 0 15px transparentize($black, 0.7);
-		border-radius: 3px;
-		border: var(--theme-color) solid 1px;
-		display: flex;
-		flex-direction: column;
-	}
-
-	.menu-button {
-		@extend %reset-button;
-		@extend %reset-link;
-		padding: 1em 1em;
-
-		&:hover {
-			background-color: var(--theme-color);
-			color: var(--theme-text-color);
-		}
-	}
-</style>

@@ -9,12 +9,8 @@
 
 </script>
 
-<input {autocomplete} bind:value={value} id="{formGroupData.id}" minlength="6" type="password">
+<input {autocomplete} bind:value={value} class="input-element" id="{formGroupData.id}" minlength="6" type="password">
 
 <style lang="scss">
   @import './form-input';
-
-  input {
-    @extend %input;
-  }
 </style>

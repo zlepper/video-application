@@ -1,12 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="h-full bg-gray-100" lang="en">
 	<head>
 		<meta charset="utf-8" />
 		<link href="%sveltekit.assets%/favicon.png" rel="icon" />
+		<link href="%sveltekit.assets%/fonts/inter.css" rel="stylesheet" />
 		<meta content="width=device-width, initial-scale=1" name="viewport" />
 		%sveltekit.head%
 	</head>
-	<body>
-		%sveltekit.body%
+	<body class="h-full antialiased font-sans bg-gray-200 overflow-hidden">
+		<div class="min-h-full">%sveltekit.body%</div>
 	</body>
 </html>

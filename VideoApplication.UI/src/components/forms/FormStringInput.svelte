@@ -1,23 +1,28 @@
 <script lang="ts">
-  import { getFormGroup } from "./form-group";
+	import { getFormGroup } from "./form-group";
 
-  export let value: string;
-  export let autocomplete: 'name';
-  export let minlength: number;
-  export let maxlength: number;
-  export let pattern: string;
+	export let value: string;
+	export let autocomplete: 'name'|null = null;
+	export let minlength: number|null = null;
+	export let maxlength: number|null = null;
+	export let pattern: string|null = null;
 
-  const formGroupData = getFormGroup();
-
-
+	const formGroupData = getFormGroup();
 </script>
 
-<input {autocomplete} bind:value={value} id="{formGroupData.id}" {maxlength} {minlength} {pattern}>
+<div class="mt-1">
+	<input
+		{autocomplete}
+		bind:value
+		class="input-element"
+		id={formGroupData.id}
+		{maxlength}
+		{minlength}
+		{pattern}
+		type="text"
+	/>
+</div>
 
 <style lang="scss">
-  @import './form-input';
-
-  input {
-    @extend %input;
-  }
+	@import './form-input';
 </style>

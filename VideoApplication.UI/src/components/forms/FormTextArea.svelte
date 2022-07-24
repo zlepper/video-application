@@ -10,14 +10,12 @@
 
 </script>
 
-<textarea  bind:value={value} id="{formGroupData.id}" style:resize="{resize}"></textarea>
+<textarea  bind:value={value} class="input-element" id="{formGroupData.id}" style:resize="{resize}"></textarea>
 
 <style lang="scss">
   @import './form-input';
 
   textarea {
-    @extend %input;
-
     min-height: 5em;
     height: 5em;
   }

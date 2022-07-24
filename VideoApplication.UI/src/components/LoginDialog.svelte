@@ -7,21 +7,24 @@
 	import { ErrorKind } from "../services/http-client";
 	import { SsrClient } from "../services/ssr-client";
 	import Dialog from "./Dialog.svelte";
+	import FormCheckbox from "./forms/FormCheckbox.svelte";
 	import FormEmailInput from "./forms/FormEmailInput.svelte";
 	import FormGroup from "./forms/FormGroup.svelte";
 	import FormLabel from "./forms/FormLabel.svelte";
 	import FormPasswordInput from "./forms/FormPasswordInput.svelte";
 	import FormStringInput from "./forms/FormStringInput.svelte";
+	import HorizontalRule from "./HorizontalRule.svelte";
 
 	$session;
 
 	const authClient = new AuthClient(session);
 	const ssrClient = new SsrClient(session);
 
-	export let dialogSource: HTMLElement | null;
-
 	let mode: 'login' | 'signup' = 'login';
 
+	function toggleMode() {
+		mode = mode === 'login' ? 'signup' : 'login';
+	}
 
 	const dispatcher = createEventDispatcher();
 
@@ -31,6 +34,7 @@
 	let signupPassword = '';
 	let repeatPassword = '';
 	let name = '';
+	let rememberMe = false;
 
 	$: loginIsValid = !!loginEmail && !!loginPassword;
 	$: signupIsValid =
@@ -60,8 +64,7 @@
 	}
 
 	async function persistLogin(userInfo: UserInfo) {
-
-		session.update(s => ({
+		session.update((s) => ({
 			...s,
 			accessKey: userInfo.accessKey,
 			name: userInfo.name
@@ -112,11 +115,17 @@
 	}
 </script>
 
-<Dialog {dialogSource} on:close>
-	<svelte:fragment slot="title">Login</svelte:fragment>
+<Dialog on:close>
+	<svelte:fragment slot="title">
+		{#if mode === 'login'}
+			Sign in to your account
+		{:else}
+			Create a new account
+		{/if}
+	</svelte:fragment>
 
 	{#if mode === 'login'}
-		<form id="login-form" on:submit|preventDefault={login}>
+		<form id="login-form" on:submit|preventDefault={login} class="space-y-6 mt-6">
 			<FormGroup>
 				<FormLabel>Email</FormLabel>
 				<FormEmailInput bind:value={loginEmail} autocomplete="email" />
@@ -126,12 +135,38 @@
 				<FormLabel>Password</FormLabel>
 				<FormPasswordInput bind:value={loginPassword} autocomplete="password" />
 			</FormGroup>
+
+			<div class="flex items-center justify-between gap-2">
+				<FormCheckbox bind:value={rememberMe}>Remember me</FormCheckbox>
+
+				<div class="text-sm">
+					<a class="font-medium text-indigo-600 hover:text-indigo-500">Forgot your password?</a>
+				</div>
+			</div>
+
+			<div>
+				<button
+					type="submit"
+					disabled={!loginIsValid || requestState === 'pending'}
+					class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+				>
+					{#if requestState === 'pending'}
+						Logging in...
+					{:else}
+						Login
+					{/if}
+				</button>
+			</div>
 		</form>
 	{:else}
-		<form id="signup-form" on:submit|preventDefault={signup}>
+		<form id="signup-form" on:submit|preventDefault={signup} class="space-y-6 mt-6">
 			<FormGroup>
 				<FormLabel>Email</FormLabel>
 				<FormEmailInput bind:value={signupEmail} autocomplete="email" />
+
+				{#if requestState === 'failed' && requestErrorCode === 'email_already_in_use'}
+					<p class="mt-2 text-sm text-red-600" id="email-error">Email already in use.</p>
+				{/if}
 			</FormGroup>
 
 			<FormGroup>
@@ -154,6 +189,24 @@
 					</span>
 				{/if}
 			</FormGroup>
+
+			<div class="flex items-center justify-between gap-2">
+				<FormCheckbox bind:value={rememberMe}>Remember me</FormCheckbox>
+			</div>
+
+			<div>
+				<button
+					type="submit"
+					disabled={!loginIsValid || requestState === 'pending'}
+					class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+				>
+					{#if requestState === 'pending'}
+						Creating account...
+					{:else}
+						Create account
+					{/if}
+				</button>
+			</div>
 		</form>
 	{/if}
 
@@ -169,59 +222,19 @@
 		</div>
 	{/if}
 
-	<div class="footer" slot="footer">
-		{#if mode === 'login'}
-			<button type="button" class="text-button" on:click|preventDefault={() => (mode = 'signup')}>
-				Create Account
-			</button>
+	<div class="mt-6">
+		<HorizontalRule>Or</HorizontalRule>
 
-			<button
-				type="submit"
-				class="main-button"
-				disabled={!loginIsValid || requestState === 'pending'}
-				form="login-form"
-			>
-				{#if requestState === 'pending'}
-					Logging in...
-				{:else}
-					Login
-				{/if}
-			</button>
-		{:else}
-			<button type="button" class="text-button" on:click|preventDefault={() => (mode = 'login')}>
+		<button
+			class="mt-6 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+			on:click|preventDefault={toggleMode}
+			type="button"
+		>
+			{#if mode === 'login'}
+				Want an account?
+			{:else}
 				Already have an account?
-			</button>
-
-			<button
-				type="submit"
-				class="main-button"
-				disabled={!signupIsValid || requestState === 'pending'}
-				form="signup-form"
-			>
-				Create Account
-			</button>
-		{/if}
+			{/if}
+		</button>
 	</div>
 </Dialog>
-
-<style lang="scss">
-	.footer {
-		display: flex;
-		flex-direction: row;
-		justify-content: space-between;
-		width: 100%;
-	}
-
-	.main-button {
-		@extend %base-button;
-	}
-
-	.text-button {
-		@extend %reset-button;
-		color: var(--theme-color);
-	}
-
-	.validation-error {
-		color: var(--error-color);
-	}
-</style>

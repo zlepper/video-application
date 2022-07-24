@@ -7,15 +7,6 @@
   initializeFormGroup(id)
 </script>
 
-<div class="form-group">
+<div>
   <slot />
 </div>
-
-<style lang="scss">
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    box-sizing: border-box;
-    margin-bottom: 1em;
-  }
-</style>

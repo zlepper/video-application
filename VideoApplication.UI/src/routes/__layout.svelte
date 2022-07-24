@@ -52,11 +52,6 @@
 	import '../app.scss';
 	import NavSideBar from '../components/NavSideBar.svelte';
 	import TopBar from '../components/TopBar.svelte';
-	import { getStores } from '$app/stores';
-	import { setGlobalSession } from '../services/global-session';
-
-	const { session } = getStores();
-	setGlobalSession(session);
 </script>
 
 <TopBar />

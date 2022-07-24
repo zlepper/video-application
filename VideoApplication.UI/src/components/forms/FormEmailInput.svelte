@@ -3,18 +3,15 @@
 
   export let value: string;
 
-  export let autocomplete: 'email';
+	export let autocomplete: 'email';
 
-  const formGroupData = getFormGroup();
-
+	const formGroupData = getFormGroup();
 </script>
 
-<input {autocomplete} bind:value={value} id="{formGroupData.id}" type="email">
+<div class="mt-1">
+	<input {autocomplete} bind:value class="input-element" id={formGroupData.id} type="email" />
+</div>
 
 <style lang="scss">
-  @import './form-input';
-
-  input {
-    @extend %input;
-  }
+	@import './form-input';
 </style>
