@@ -1,60 +1,76 @@
-﻿using Microsoft.Extensions.Options;
-using Minio;
+﻿using Amazon.S3;
+using Amazon.S3.Model;
+using Microsoft.Extensions.Options;
 using VideoApplication.Api.Models;
 
 namespace VideoApplication.Api.Services;
 
 public class StorageWrapper
 {
-    private readonly MinioClient _minioClient;
+    private readonly IAmazonS3 _s3Client;
     private readonly IOptionsSnapshot<StorageSettings> _settings;
 
     private string bucketName => _settings.Value.BucketName;
 
-    public StorageWrapper(MinioClient minioClient, IOptionsSnapshot<StorageSettings> settings)
+    public StorageWrapper(IAmazonS3 s3Client, IOptionsSnapshot<StorageSettings> settings)
     {
-        _minioClient = minioClient;
+        _s3Client = s3Client;
         _settings = settings;
     }
 
-    public async Task UploadBlob(string key, Stream stream, CancellationToken cancellationToken)
+    public async Task<string> InitiateUpload(string key, CancellationToken cancellationToken)
     {
-        await _minioClient.PutObjectAsync(new PutObjectArgs()
-            .WithObjectSize(-1)
-            .WithStreamData(stream)
-            .WithBucket(bucketName)
-            .WithObject(key), cancellationToken);
+        var initiateResponse = await _s3Client.InitiateMultipartUploadAsync(bucketName, key, cancellationToken);
+        return initiateResponse.UploadId;
     }
 
-    public async Task DeleteBlobs(List<string> keys, CancellationToken cancellationToken)
+    public async Task<string> UploadPart(UploadPartContext context, CancellationToken cancellationToken)
     {
-        var args = new RemoveObjectsArgs()
-            .WithBucket(bucketName)
-            .WithObjects(keys);
-        await _minioClient.RemoveObjectsAsync(args, cancellationToken);
+        var partResponse = await _s3Client.UploadPartAsync(new UploadPartRequest()
+        {
+            BucketName = bucketName,
+            Key = context.Key,
+            UploadId = context.UploadId,
+            PartNumber = context.partNumber,
+            InputStream = context.content,
+        }, cancellationToken);
+
+        
+        return partResponse.ETag;
     }
-    
+
+    public async Task FinishUpload(FinishUploadContext context, CancellationToken cancellationToken)
+    {
+        var partETags = context.PartETags
+            .OrderBy(t => t.PartNumber)
+            .Select(tag => new PartETag(tag.PartNumber, tag.ETag))
+            .ToList();
+        
+        await _s3Client.CompleteMultipartUploadAsync(new CompleteMultipartUploadRequest()
+        {
+            UploadId = context.UploadId,
+            Key = context.Key,
+            BucketName = bucketName,
+            PartETags = partETags
+        }, cancellationToken);
+    }
+
+    public async Task<CancelUploadResult> CancelUpload(string uploadId, string key, CancellationToken cancellationToken)
+    {
+        await _s3Client.AbortMultipartUploadAsync(bucketName, key, uploadId, cancellationToken);
+
+        var parts = await _s3Client.ListPartsAsync(bucketName, key, uploadId, cancellationToken);
+        if (parts.Parts.Count == 0)
+        {
+            return CancelUploadResult.Cancelled;
+        }
+
+        return CancelUploadResult.MoreToGo;
+    }
+
     public async Task<Stream> OpenReadStream(string key, CancellationToken cancellationToken)
     {
-        var args = new SelectObjectContentArgs()
-            .WithBucket(bucketName)
-            .WithObject(key);
-        var result = await _minioClient.SelectObjectContentAsync(args, cancellationToken);
-        return result.Payload; 
-    }
-
-    public async Task CreateBucket(string name, CancellationToken cancellationToken = default)
-    {
-        var args = new MakeBucketArgs()
-            .WithBucket(name);
-        await _minioClient.MakeBucketAsync(args, cancellationToken);
-    }
-
-    public async Task DeleteBucket(string name, CancellationToken cancellationToken = default)
-    {
-        var args = new RemoveBucketArgs()
-            .WithBucket(name);
-        await _minioClient.RemoveBucketAsync(args, cancellationToken);
+        return await _s3Client.GetObjectStreamAsync(bucketName, key, null, cancellationToken: cancellationToken);
     }
 }
 

@@ -1,4 +1,6 @@
 ﻿using System.Security.Claims;
+using Amazon.S3;
+using Amazon.S3.Model;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -45,8 +47,8 @@ public abstract class TestBase
         using var scope = serviceProvider.CreateScope();
         await scope.ServiceProvider.GetRequiredService<VideoApplicationDbContext>().Database.EnsureCreatedAsync();
 
-        var s3 = scope.ServiceProvider.GetRequiredService<StorageWrapper>();
-        await s3.CreateBucket(testBucketName);
+        var s3 = scope.ServiceProvider.GetRequiredService<IAmazonS3>();
+        await s3.PutBucketAsync(testBucketName);
         
         return serviceProvider;
     }
@@ -58,7 +60,7 @@ public abstract class TestBase
         {
             s.AccessKey = "minioadmin";
             s.SecretKey = "minioadmin";
-            s.ServiceUrl = "localhost:9000";
+            s.ServiceUrl = "http://localhost:9000";
             s.BucketName = testBucketName;
         });
 
@@ -121,8 +123,21 @@ public abstract class TestBase
         {
             
             var storageSettings = _serviceProvider.GetRequiredService<IOptions<StorageSettings>>();
-            var s3 = _serviceProvider.GetRequiredService<StorageWrapper>();
-            await s3.DeleteBucket(storageSettings.Value.BucketName);
+            var s3 = _serviceProvider.GetRequiredService<IAmazonS3>();
+            var objects = await s3.ListObjectsV2Async(new ListObjectsV2Request()
+            {
+                BucketName = storageSettings.Value.BucketName,
+            });
+            await s3.DeleteObjectsAsync(new DeleteObjectsRequest()
+            {
+                Objects = objects.S3Objects.Select(o => new KeyVersion()
+                {
+                    Key = o.Key,
+                }).ToList(),
+                BucketName = storageSettings.Value.BucketName
+            });
+            
+            await s3.DeleteBucketAsync(storageSettings.Value.BucketName);
             await _serviceProvider.DisposeAsync();
             _serviceProvider = null;
         }

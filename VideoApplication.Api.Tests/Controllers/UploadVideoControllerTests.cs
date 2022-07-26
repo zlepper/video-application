@@ -36,9 +36,10 @@ public class UploadVideoControllerTests : TestBase<UploadVideoController>
 
         await using (var uploadStream = File.OpenRead(testFileName))
         {
-            Service.Request.Body = uploadStream;
-            await Service.UploadChunk(initiateResponse.UploadId, 0);
-            Service.Request.Body = Stream.Null;
+            var formFile = new FormFile(uploadStream, 0, uploadStream.Length, "chunk", testFileName);
+
+            var chunkRequest = new UploadChunkRequest(initiateResponse.UploadId, 0, formFile);
+            await Service.UploadChunk(chunkRequest);
         }
 
         await Service.FinishUpload(new FinishUploadRequest(initiateResponse.UploadId));

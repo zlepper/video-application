@@ -1,9 +1,10 @@
-﻿using Microsoft.AspNetCore.Authentication.Cookies;
+﻿using Amazon.Runtime;
+using Amazon.S3;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Options;
-using Minio;
 using NodaTime;
 using VideoApplication.Api.Database;
 using VideoApplication.Api.Database.Models;
@@ -93,18 +94,22 @@ public static class ServiceCollectionExtensions
     {
         services.Configure<StorageSettings>(configurationRoot.GetSection("Storage"));
 
-        services.AddSingleton(sp =>
+        services.AddSingleton<HttpClientFactory, AwsHttpClientFactory>();
+        services.AddSingleton<IAmazonS3>(sp =>
         {
-            var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
-            var httpClient = httpClientFactory.CreateClient("minio");
+            var httpClientFactory = sp.GetRequiredService<HttpClientFactory>();
             
             var storageConfig = sp.GetRequiredService<IOptions<StorageSettings>>();
 
-            return new MinioClient()
-                .WithHttpClient(httpClient)
-                .WithCredentials(storageConfig.Value.AccessKey, storageConfig.Value.SecretKey)
-                .WithEndpoint(storageConfig.Value.ServiceUrl)
-                .Build();
+            var awsCredentials = new BasicAWSCredentials(storageConfig.Value.AccessKey, storageConfig.Value.SecretKey);
+            var config = new AmazonS3Config()
+            {
+                HttpClientFactory = httpClientFactory,
+                ServiceURL = storageConfig.Value.ServiceUrl,
+                ForcePathStyle = true,
+                
+            };
+            return new AmazonS3Client(awsCredentials, config);
         });
 
         services.AddScoped<StorageWrapper>();
