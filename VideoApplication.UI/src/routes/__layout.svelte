@@ -65,7 +65,7 @@
 	import NavSideBar from '../components/NavSideBar.svelte';
 	import TopBar from '../components/TopBar.svelte';
 	import { session } from '$app/stores';
-	import { getMyChannels } from '../stores/my-channels-store';
+	import { getMainSideBarExpandedState, getMyChannels } from "../stores/global-stores";
 
 	export let purgeSessionStore = false;
 
@@ -75,6 +75,7 @@
 
 	$: channelStore.set(channels);
 
+	const sideBarExpanded = getMainSideBarExpandedState();
 
 	onMount(() => {
 		if (purgeSessionStore) {
@@ -87,13 +88,13 @@
 	});
 </script>
 
-<div class="page min-h-full h-full">
+<div class="page min-h-full h-full" class:side-bar-expanded={$sideBarExpanded}>
 	<div class="top-bar">
 		<TopBar />
 	</div>
 
 	<div class="side-bar">
-		<NavSideBar />
+		<NavSideBar expanded={$sideBarExpanded} />
 	</div>
 
 	<div class="content">
@@ -104,9 +105,13 @@
 <style lang="scss">
 	.page {
 		display: grid;
-		grid-template-columns: 16rem 1fr;
+		grid-template-columns: 4rem 1fr;
 		grid-template-rows: 4rem 1fr;
 		grid-template-areas: 'top-bar top-bar' 'side-bar content';
+
+		&.side-bar-expanded {
+			grid-template-columns: 16rem 1fr;
+		}
 	}
 
 	.top-bar {

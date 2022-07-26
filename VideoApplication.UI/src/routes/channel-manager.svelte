@@ -1,11 +1,11 @@
 <script lang="ts">
 	import Button from "../components/Button.svelte";
 	import ChannelListItem from "../components/ChannelListItem.svelte";
-	import { getMyChannels } from "../stores/my-channels-store";
+	import { getMyChannels } from "../stores/global-stores";
 
 	export let channels = getMyChannels();
 
-	export let errorMessage: string;
+	export let errorMessage: string = null;
 </script>
 
 {#if !errorMessage}
@@ -40,7 +40,7 @@
 		</div>
 	{:else}
 		<div class="w-8/12 mx-auto sm:px-6 mt-4">
-			<ul role="list" class="space-y-3">
+			<ul class="space-y-3">
 				{#each $channels as channel (channel.id)}
 					<ChannelListItem {channel} />
 				{/each}

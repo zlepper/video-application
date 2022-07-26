@@ -10,7 +10,7 @@
 	import { ensureAuthorized } from "../../helpers/ensure-authorized";
 	import { ChannelClient, WellKnownChannelErrorCodes } from "../../services/channel-client";
 	import { ErrorKind } from "../../services/http-client";
-	import { getMyChannels } from "../../stores/my-channels-store";
+	import { getMyChannels } from "../../stores/global-stores";
 
 	ensureAuthorized();
 

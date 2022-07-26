@@ -1,11 +1,11 @@
 <script context="module" lang="ts">
-  import type { Load, LoadOutput } from "@sveltejs/kit";
-  import { readable } from "svelte/store";
-  import type { Channel } from "../../models/channel";
-  import { ChannelClient } from "../../services/channel-client";
-  import { ErrorKind } from "../../services/http-client";
+	import type { Load, LoadOutput } from "@sveltejs/kit";
+	import { readable } from "svelte/store";
+	import type { Channel } from "../../models/channel";
+	import { ChannelClient } from "../../services/channel-client";
+	import { ErrorKind } from "../../services/http-client";
 
-  // noinspection JSUnusedGlobalSymbols
+	// noinspection JSUnusedGlobalSymbols
 	export const load: Load = async ({ fetch, session, params }): Promise<LoadOutput> => {
 		const { accessKey } = session;
 		const { channelSlug } = params;
@@ -57,6 +57,8 @@
 </script>
 
 <script lang="ts">
+	import ChannelManager from "../../components/channel-manager/ChannelManager.svelte";
+
 	export let channel: Channel | null;
 </script>
 
@@ -65,5 +67,5 @@
 		Channel was not found. Go back to the channel manager?
 	</a>
 {:else}
-	{JSON.stringify(channel)}
+	<ChannelManager {channel} />
 {/if}
