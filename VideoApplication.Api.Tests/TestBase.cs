@@ -128,15 +128,18 @@ public abstract class TestBase
             {
                 BucketName = storageSettings.Value.BucketName,
             });
-            await s3.DeleteObjectsAsync(new DeleteObjectsRequest()
+            if (objects.S3Objects.Count > 0)
             {
-                Objects = objects.S3Objects.Select(o => new KeyVersion()
+                await s3.DeleteObjectsAsync(new DeleteObjectsRequest()
                 {
-                    Key = o.Key,
-                }).ToList(),
-                BucketName = storageSettings.Value.BucketName
-            });
-            
+                    Objects = objects.S3Objects.Select(o => new KeyVersion()
+                    {
+                        Key = o.Key,
+                    }).ToList(),
+                    BucketName = storageSettings.Value.BucketName
+                });
+            }
+
             await s3.DeleteBucketAsync(storageSettings.Value.BucketName);
             await _serviceProvider.DisposeAsync();
             _serviceProvider = null;

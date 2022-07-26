@@ -20,13 +20,18 @@ public class Upload
 public class UploadChunk
 {
     public Guid Id { get; set; }
-    
+
     public Guid UploadId { get; set; }
     public Upload Upload { get; set; } = null!;
-    
+
     public int Position { get; set; }
 
     public string? Sha256Hash { get; set; }
-    
+
     public string? StorageETag { get; set; }
+}
+
+public class Video
+{
+    public Guid Id { get; set; }
 }

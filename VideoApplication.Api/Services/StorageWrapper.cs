@@ -33,6 +33,7 @@ public class StorageWrapper
             UploadId = context.UploadId,
             PartNumber = context.partNumber,
             InputStream = context.content,
+            ChecksumSHA256 = Convert.ToBase64String(Convert.FromHexString(context.Sha256))
         }, cancellationToken);
 
         
@@ -80,7 +81,7 @@ public enum CancelUploadResult
     MoreToGo
 }
 
-public record struct UploadPartContext(string Key, int partNumber, string UploadId, Stream content);
+public record struct UploadPartContext(string Key, int partNumber, string UploadId, Stream content, string Sha256);
 public record struct FinishUploadContext(string Key, string UploadId, List<S3PartETag> PartETags);
 
 public record struct S3PartETag(string ETag, int PartNumber);
