@@ -1,23 +1,24 @@
 ﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Npgsql;
 using Rebus.Bus;
 using Rebus.TestHelpers;
 using VideoApplication.Api.Controllers;
 using VideoApplication.Api.Controllers.Auth.Requests;
 using VideoApplication.Api.Controllers.Auth.Responses;
+using VideoApplication.Api.Controllers.Channels.Requests;
+using VideoApplication.Api.Controllers.Channels.Responses;
 using VideoApplication.Api.Database;
 using VideoApplication.Api.Extensions;
+using VideoApplication.Api.Services;
 
 namespace VideoApplication.Api.Tests;
 
 public abstract class TestBase
 {
-    private ServiceProvider CreateServiceProvider()
+    private async Task<ServiceProvider> CreateServiceProvider()
     {
         var services = new ServiceCollection();
 
@@ -27,8 +28,10 @@ public abstract class TestBase
         services.AddCustomIdentity();
         services.AddApplicationServices();
         services.AddDistributedMemoryCache();
-        
-        ConfigureDbContext<VideoApplicationDbContext>(services);
+
+        var testBucketName = ConfigureTestStorage(services);
+
+        ConfigureDbContext(services);
         
         AddMoreDependencies(services);
 
@@ -39,9 +42,28 @@ public abstract class TestBase
         });
 
         using var scope = serviceProvider.CreateScope();
-        scope.ServiceProvider.GetRequiredService<VideoApplicationDbContext>().Database.EnsureCreated();
+        await scope.ServiceProvider.GetRequiredService<VideoApplicationDbContext>().Database.EnsureCreatedAsync();
 
+        var s3 = scope.ServiceProvider.GetRequiredService<StorageWrapper>();
+        await s3.CreateBucket(testBucketName);
+        
         return serviceProvider;
+    }
+
+    private static string ConfigureTestStorage(ServiceCollection services)
+    {
+        var testBucketName = "utb-" + Guid.NewGuid();
+        services.PostConfigure<StorageSettings>(s =>
+        {
+            s.AccessKey = "minioadmin";
+            s.SecretKey = "minioadmin";
+            s.ServiceUrl = new Uri("http://localhost:9000");
+            s.BucketName = testBucketName;
+        });
+
+        services.AddS3Storage(new ConfigurationRoot(ArraySegment<IConfigurationProvider>.Empty));
+
+        return testBucketName;
     }
 
     protected FakeBus Bus => ServiceProvider.GetRequiredService<FakeBus>();
@@ -58,45 +80,49 @@ public abstract class TestBase
     
     
     [SetUp]
-    public void Setup()
+    public async Task Setup()
     {
-        _serviceProvider = CreateServiceProvider();
+        _serviceProvider = await CreateServiceProvider();
         _serviceScope = _serviceProvider.CreateScope();
     }
 
-    private void ConfigureDbContext<T>(IServiceCollection services)
-        where T : DbContext
+    private void ConfigureDbContext(IServiceCollection services)
     {
         var databaseName = $"TestDb{Guid.NewGuid():N}";
         var connectionString = $"Host=localhost;Port=26257;Database={databaseName};Username=root;Password=root;";
 
-        services.AddVideoApplicationDbContext(connectionString, (db, _) => db.EnableSensitiveDataLogging());
+        services.AddVideoApplicationDbContext(connectionString, true);
         services.AddSingleton(new TestDatabaseName(databaseName, connectionString));
     }
 
     private record TestDatabaseName(string DatabaseName, string ConnectionString);
 
     [TearDown]
-    public void Teardown()
+    public async Task Teardown()
     {
         if (_serviceScope != null)
         {
             var name = _serviceScope.ServiceProvider.GetRequiredService<TestDatabaseName>();
-            using (var conn = new NpgsqlConnection(name.ConnectionString))
+            await using (var conn = new NpgsqlConnection(name.ConnectionString))
             {
                 conn.Open();
-                using var command = conn.CreateCommand();
+                await using var command = conn.CreateCommand();
                 command.CommandText = $@"DROP DATABASE ""{name.DatabaseName}"" CASCADE;";
                 command.ExecuteNonQuery();
             }
-            
+
+
             _serviceScope.Dispose();
             _serviceScope = null;
         }
 
         if (_serviceProvider != null)
         {
-            _serviceProvider.Dispose();
+            
+            var storageSettings = _serviceProvider.GetRequiredService<IOptions<StorageSettings>>();
+            var s3 = _serviceProvider.GetRequiredService<StorageWrapper>();
+            await s3.DeleteBucket(storageSettings.Value.BucketName);
+            await _serviceProvider.DisposeAsync();
             _serviceProvider = null;
         }
     }
@@ -108,6 +134,7 @@ public abstract class TestBase<T> : TestBase where T : class
     {
         services.TryAddScoped<T>();
         services.TryAddScoped<AuthController>();
+        services.TryAddScoped<ChannelController>();
         base.AddMoreDependencies(services);
     }
 
@@ -156,6 +183,28 @@ public abstract class TestBase<T> : TestBase where T : class
         {
             HttpContext = httpContext
         };
+    }
 
+    protected async Task CreateAndUseTestUser()
+    {
+        var testUser = await CreateTestUser();
+        
+        SetUserContext(testUser);
+    }
+
+    protected async Task<ChannelResponse> CreateTestChannel()
+    {
+        var request = new CreateChannelRequest("myChannel", "My Channel", "This is my channel for testing");
+
+        var channelController = ServiceProvider.GetRequiredService<ChannelController>();
+        channelController.ControllerContext = (Service as ControllerBase)!.ControllerContext;
+        return await channelController.CreateChannel(request);
+    }
+
+    protected async Task<ChannelResponse> PrepareTestSystem()
+    {
+        await CreateAndUseTestUser();
+
+        return await CreateTestChannel();
     }
 }

@@ -16,4 +16,6 @@ public class Channel
     public bool MarkedForDeletion { get; set; } = true;
     
     public Instant CreatedAt { get; set; }
+
+    public ICollection<Upload> Uploads { get; set; } = null!;
 }

@@ -2,8 +2,6 @@
 
 namespace VideoApplication.Api.Exceptions.Auth;
 
-
-
 public class InvalidEmailOrPasswordException : AuthException
 {
     public InvalidEmailOrPasswordException() : base("Invalid username or password")
@@ -12,8 +10,4 @@ public class InvalidEmailOrPasswordException : AuthException
 
     protected override ErrorKind ErrorKind => ErrorKind.BadRequest;
     protected override DetailedAuthErrorCode DetailedErrorCode => DetailedAuthErrorCode.InvalidEmailOrPassword;
-    protected override AuthErrorResponse CreateAuthError()
-    {
-        return new AuthErrorResponse();
-    }
 }

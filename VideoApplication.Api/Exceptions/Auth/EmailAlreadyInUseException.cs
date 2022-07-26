@@ -13,10 +13,11 @@ public class EmailAlreadyInUseException : AuthException
     }
 
     protected override DetailedAuthErrorCode DetailedErrorCode => DetailedAuthErrorCode.EmailAlreadyInUse;
-    protected override AuthErrorResponse CreateAuthError()
+
+    protected override DetailedErrorResponse CreateDetailedError()
     {
         return new EmailAlreadyInUseErrorResponse(_email);
     }
 
-    private record EmailAlreadyInUseErrorResponse(string Email) : AuthErrorResponse;
+    private record EmailAlreadyInUseErrorResponse(string Email) : DetailedErrorResponse;
 }

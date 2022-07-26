@@ -10,6 +10,8 @@ public class VideoApplicationDbContext : IdentityDbContext<User, Role, Guid>
     public DbSet<AccessKey> AccessKeys { get; set; } = null!;
 
     public DbSet<Channel> Channels { get; set; } = null!;
+    public DbSet<Upload> Uploads { get; set; } = null!;
+    public DbSet<UploadChunk> UploadChunks { get; set; } = null!;
 
     public VideoApplicationDbContext(DbContextOptions options) : base(options)
     {
@@ -43,6 +45,30 @@ public class VideoApplicationDbContext : IdentityDbContext<User, Role, Guid>
                 .HasPrincipalKey(u => u.Id)
                 .HasForeignKey(c => c.OwnerId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            channel.HasMany(c => c.Uploads)
+                .WithOne(u => u.Channel)
+                .HasForeignKey(u => u.ChannelId)
+                .HasPrincipalKey(c => c.Id)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Upload>(upload =>
+        {
+            upload.HasKey(u => u.Id);
+
+            upload.HasIndex(u => new {u.ChannelId, u.Sha256Hash}).IsUnique();
+
+            upload.HasMany(u => u.Chunks)
+                .WithOne(c => c.Upload)
+                .HasForeignKey(c => c.UploadId)
+                .HasPrincipalKey(u => u.Id)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UploadChunk>(chunk =>
+        {
+            chunk.HasKey(c => c.Id);
         });
     }
 }

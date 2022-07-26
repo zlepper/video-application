@@ -8,14 +8,36 @@ public abstract class BaseStatusException : Exception
     {
     }
 
-    protected abstract ErrorResponse CreateErrorResponse();
-    
-    public ErrorResponse GetError()
+    public abstract ErrorResponse GetError();
+}
+
+public abstract class BaseStatusException<TDetailedErrorCode> : BaseStatusException
+    where TDetailedErrorCode : struct
+{
+    protected BaseStatusException(string message) : base(message)
     {
-        var res = CreateErrorResponse();
+    }
+    
+    protected abstract TDetailedErrorCode DetailedErrorCode { get; }
+    
+    
+    protected virtual DetailedErrorResponse CreateDetailedError()
+    {
+        return new DetailedErrorResponse();
+    }
+
+    public override ErrorResponse GetError()
+    {
+        var res = CreateDetailedError();
+        res.DetailedErrorCode = DetailedErrorCode;
         res.Error = ErrorKind;
         res.Message = Message;
         return res;
+    }
+
+    protected record DetailedErrorResponse : ErrorResponse
+    {
+        public TDetailedErrorCode DetailedErrorCode { get; set; }
     }
 }
 

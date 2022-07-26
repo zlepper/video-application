@@ -1,11 +1,10 @@
-﻿using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
+﻿using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Options;
+using Minio;
 using NodaTime;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure;
 using VideoApplication.Api.Database;
 using VideoApplication.Api.Database.Models;
 using VideoApplication.Api.Services;
@@ -19,6 +18,8 @@ public static class ServiceCollectionExtensions
     {
         services.AddSingleton<IClock>(SystemClock.Instance);
         services.AddSingleton(typeof(ICache<>), typeof(DistributedCache<>));
+
+        services.AddHttpClient();
         
         return services;
     }
@@ -27,8 +28,6 @@ public static class ServiceCollectionExtensions
     
     public static IServiceCollection AddCustomIdentity(this IServiceCollection services)
     {
-        
-        
         services.AddIdentity<User, Role>(i =>
             {
                 i.User.RequireUniqueEmail = true;
@@ -65,7 +64,7 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AddVideoApplicationDbContext(this IServiceCollection services, string connectionString, Action<DbContextOptionsBuilder, NpgsqlDbContextOptionsBuilder>? customize = null)
+    public static IServiceCollection AddVideoApplicationDbContext(this IServiceCollection services, string connectionString, bool isDevelopment)
     {
         services.AddDbContext<VideoApplicationDbContext>(o =>
         {
@@ -73,10 +72,43 @@ public static class ServiceCollectionExtensions
             {
                 b.EnableRetryOnFailure();
                 b.UseNodaTime();
-
-                customize?.Invoke(o, b);
             });
+
+            if (isDevelopment)
+            {
+                o.EnableDetailedErrors();
+                o.EnableSensitiveDataLogging();
+                o.ConfigureWarnings(warningActions =>
+                {
+                    warningActions.Throw(CoreEventId.FirstWithoutOrderByAndFilterWarning,
+                        CoreEventId.RowLimitingOperationWithoutOrderByWarning, CoreEventId.DistinctAfterOrderByWithoutRowLimitingOperatorWarning);
+                });
+            }
         });
+        return services;
+    }
+
+    public static IServiceCollection AddS3Storage(this IServiceCollection services, IConfiguration configurationRoot)
+    {
+        services.Configure<StorageSettings>(configurationRoot.GetSection("Storage"));
+
+        services.AddSingleton(sp =>
+        {
+            var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient("minio");
+            
+            var storageConfig = sp.GetRequiredService<IOptions<StorageSettings>>();
+
+            return new MinioClient()
+                .WithHttpClient(httpClient)
+                .WithCredentials(storageConfig.Value.AccessKey, storageConfig.Value.SecretKey)
+                .WithEndpoint(storageConfig.Value.ServiceUrl)
+                .Build();
+        });
+
+        services.AddScoped<StorageWrapper>();
+
+
         return services;
     }
 }

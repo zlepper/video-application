@@ -13,10 +13,12 @@ namespace VideoApplication.Api;
 public class Startup 
 {
     private readonly IConfiguration _configuration;
+    private readonly IHostEnvironment _hostEnvironment;
 
-    public Startup(IConfiguration configuration)
+    public Startup(IConfiguration configuration, IHostEnvironment hostEnvironment)
     {
         _configuration = configuration;
+        _hostEnvironment = hostEnvironment;
     }
 
     public void ConfigureServices(IServiceCollection services)
@@ -60,7 +62,8 @@ public class Startup
 
         var connectionString = _configuration.GetConnectionString("DefaultConnection");
 
-        services.AddVideoApplicationDbContext(connectionString);
+        services.AddVideoApplicationDbContext(connectionString, _hostEnvironment.IsDevelopment());
+        services.AddS3Storage(_configuration);
         
         services.ConfigureRebus(_configuration, RouteName.Api);
 

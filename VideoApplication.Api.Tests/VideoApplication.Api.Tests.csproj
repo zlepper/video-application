@@ -21,4 +21,11 @@
       <ProjectReference Include="..\VideoApplication.Api\VideoApplication.Api.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Remove="TestFiles\*.*" />
+      <Content Include="TestFiles\*.*">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+
 </Project>
