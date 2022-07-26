@@ -12,6 +12,7 @@ using VideoApplication.Api.Controllers.Channels.Requests;
 using VideoApplication.Api.Controllers.Channels.Responses;
 using VideoApplication.Api.Database;
 using VideoApplication.Api.Extensions;
+using VideoApplication.Api.Models;
 using VideoApplication.Api.Services;
 
 namespace VideoApplication.Api.Tests;
@@ -57,7 +58,7 @@ public abstract class TestBase
         {
             s.AccessKey = "minioadmin";
             s.SecretKey = "minioadmin";
-            s.ServiceUrl = new Uri("http://localhost:9000");
+            s.ServiceUrl = "localhost:9000";
             s.BucketName = testBucketName;
         });
 

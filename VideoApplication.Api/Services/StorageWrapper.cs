@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using Minio;
+using VideoApplication.Api.Models;
 
 namespace VideoApplication.Api.Services;
 
@@ -25,6 +26,14 @@ public class StorageWrapper
             .WithObject(key), cancellationToken);
     }
 
+    public async Task DeleteBlobs(List<string> keys, CancellationToken cancellationToken)
+    {
+        var args = new RemoveObjectsArgs()
+            .WithBucket(bucketName)
+            .WithObjects(keys);
+        await _minioClient.RemoveObjectsAsync(args, cancellationToken);
+    }
+    
     public async Task<Stream> OpenReadStream(string key, CancellationToken cancellationToken)
     {
         var args = new SelectObjectContentArgs()

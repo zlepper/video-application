@@ -66,9 +66,7 @@ public class UploadVideoController : ControllerBase
         try
         {
             var videoId = Guid.NewGuid();
-            var sourcePath = StorageStructureHelper.GetSourcePath(channel.Id, videoId);
 
-            var uploadId = await _storageWrapper.InitiateUpload(sourcePath, cancellationToken);
             var upload = new Upload()
             {
                 Id = videoId,
@@ -77,7 +75,6 @@ public class UploadVideoController : ControllerBase
                 Sha256Hash = request.Sha256Hash,
                 FileSize = request.FileSize,
                 Chunks = new List<UploadChunk>(),
-                StorageUploadId = uploadId,
             };
 
             _dbContext.Uploads.Add(upload);
@@ -105,7 +102,6 @@ public class UploadVideoController : ControllerBase
             {
                 Id = u.Id,
                 ChannelId = u.ChannelId,
-                StorageUploadId = u.StorageUploadId,
             })
             .FirstOrDefaultAsync(cancellationToken: cancellationToken);
 
@@ -131,7 +127,7 @@ public class UploadVideoController : ControllerBase
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        (uploadChunk.Sha256Hash, uploadChunk.StorageETag) = await DoUpload(uploadInfo, position, cancellationToken);
+        uploadChunk.Sha256Hash = await DoUpload(uploadInfo, uploadChunk, cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return CreateUploadChunkResponse(uploadChunk);
@@ -151,36 +147,52 @@ public class UploadVideoController : ControllerBase
             throw new UploadNotFoundException($"The specified upload with id '{request.UploadId}' was not found");
         }
 
-        if (uploadInfo.Chunks.Any(c => c.StorageETag == null))
+        if (uploadInfo.Chunks.Any(c => c.Sha256Hash == null))
         {
             throw new UploadChunksNotFinishedException();
         }
 
-        var storageKey = StorageStructureHelper.GetSourcePath(uploadInfo.ChannelId, uploadInfo.Id);
-        var eTags = uploadInfo.Chunks
-            .Select(c => new S3PartETag(c.StorageETag!, c.Position))
-            .ToList();
-        await _storageWrapper.FinishUpload(new FinishUploadContext(storageKey, uploadInfo.StorageUploadId, eTags), cancellationToken);
+        var sourceStorageKey = StorageStructureHelper.GetSourcePath(uploadInfo.ChannelId, uploadInfo.Id);
+        var uploadPipe = new Pipe();
+        await using var uploadReadStream = uploadPipe.Reader.AsStream();
+        // using var sha256 = SHA256.Create();
+        // await using var cryptoStream = new CryptoStream(uploadReadStream, sha256, CryptoStreamMode.Write);
+        // await using var teeReader = new TeeReaderStream(uploadReadStream, cryptoStream);
+        var uploadTask = _storageWrapper.UploadBlob(sourceStorageKey, uploadReadStream, cancellationToken);
 
+        var chunkKeys = new List<string>();
+        foreach (var chunk in uploadInfo.Chunks)
+        {
+            var chunkKey = StorageStructureHelper.GetSourceChunkPath(uploadInfo.ChannelId, uploadInfo.Id, chunk.Id);
+            await using var chunkStream = await _storageWrapper.OpenReadStream(chunkKey, cancellationToken);
+            await chunkStream.CopyToAsync(uploadPipe.Writer, cancellationToken);
+            chunkKeys.Add(chunkKey);
+        }
+
+        await uploadPipe.Writer.FlushAsync(cancellationToken);
+        await uploadPipe.Writer.CompleteAsync();
+
+        await uploadTask;
+
+        await _storageWrapper.DeleteBlobs(chunkKeys, cancellationToken);
 
         _dbContext.Uploads.Remove(uploadInfo);
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
     
-    private async Task<(string sha256Hash, string storageETag)> DoUpload(Upload uploadInfo, int position, CancellationToken cancellationToken)
+    private async Task<string> DoUpload(Upload uploadInfo, UploadChunk chunk, CancellationToken cancellationToken)
     {
-        var uploadKey = StorageStructureHelper.GetSourcePath(uploadInfo.ChannelId, uploadInfo.Id);
         var uploadPipe = new Pipe(new PipeOptions(pauseWriterThreshold: 4096));
         await using var uploadReadStream = uploadPipe.Reader.AsStream();
-        var uploadPartContext = new UploadPartContext(uploadKey, position, uploadInfo.StorageUploadId, uploadReadStream);
-        var uploadTask = _storageWrapper.UploadPart(uploadPartContext, cancellationToken);
         await using var uploadWriteStream = uploadPipe.Writer.AsStream();
+
+        var uploadPath = StorageStructureHelper.GetSourceChunkPath(uploadInfo.ChannelId, uploadInfo.Id, chunk.Id);
+        var uploadTask = _storageWrapper.UploadBlob(uploadPath, uploadReadStream, cancellationToken);
         await using var hashStream = new TeeReaderStream(Request.Body, uploadWriteStream);
         using var sha256 = SHA256.Create();
-        var computeHashTask = sha256.ComputeHashAsync(hashStream, cancellationToken);
-        var storageETag = await uploadTask;
-        var sha256Hash = await computeHashTask;
-        return (Convert.ToHexString(sha256Hash), storageETag);
+        var sha256Hash = await sha256.ComputeHashAsync(hashStream, cancellationToken);
+        await uploadTask;
+        return Convert.ToHexString(sha256Hash);
     }
 
     private StartVideoUploadResponse CreateStartResponse(Upload upload)

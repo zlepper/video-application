@@ -6,4 +6,9 @@ public static class StorageStructureHelper
     {
         return $"channels/{channelId}/videos/{videoId}/source";
     }
+    
+    public static string GetSourceChunkPath(Guid channelId, Guid videoId, Guid chunkId)
+    {
+        return $"channels/{channelId}/videos/{videoId}/chunks/{chunkId}";
+    }
 }

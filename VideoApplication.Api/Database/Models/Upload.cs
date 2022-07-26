@@ -13,7 +13,6 @@ public class Upload
     public string FileName { get; set; } = null!;
 
     public ICollection<UploadChunk> Chunks { get; set; } = null!;
-    public string StorageUploadId { get; set; } = null!;
 }
 
 public class UploadChunk
@@ -26,8 +25,4 @@ public class UploadChunk
     public int Position { get; set; }
 
     public string? Sha256Hash { get; set; }
-
-    public string? StorageETag { get; set; }
-    
-    public long ChunkSize { get; set; }
 }

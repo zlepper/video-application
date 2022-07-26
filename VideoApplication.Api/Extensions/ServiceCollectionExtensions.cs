@@ -7,6 +7,7 @@ using Minio;
 using NodaTime;
 using VideoApplication.Api.Database;
 using VideoApplication.Api.Database.Models;
+using VideoApplication.Api.Models;
 using VideoApplication.Api.Services;
 using SystemClock = NodaTime.SystemClock;
 
