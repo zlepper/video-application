@@ -1,5 +1,5 @@
 ﻿using System.Security.Cryptography;
-using NUnit.Framework;
+using Microsoft.EntityFrameworkCore;
 using VideoApplication.Api.Controllers;
 using VideoApplication.Api.Services;
 
@@ -52,6 +52,12 @@ public class UploadVideoControllerTests : TestBase<UploadVideoController>
 
         var uploadedHash = await HashStream(resultStream);
         Assert.That(uploadedHash, Is.EqualTo(hash));
+        
+        Assert.That(DbContext.Uploads, Is.Empty);
+        var video = await DbContext.Videos.SingleAsync();
+        Assert.That(video.Id, Is.EqualTo(initiateResponse.UploadId));
+        Assert.That(video.OriginalFileName, Is.EqualTo(Path.GetFileName(testFileName)));
+        Assert.That(video.Name, Is.EqualTo(Path.GetFileNameWithoutExtension(testFileName)));
     }
     
     [TestCase(5 * 1024 * 1024)] // Min size of chunks

@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using NodaTime;
 using VideoApplication.Api.Database;
 using VideoApplication.Api.Database.Models;
 using VideoApplication.Api.Exceptions.Channels;
@@ -20,12 +21,14 @@ public class UploadVideoController : ControllerBase
     private readonly ILogger<UploadVideoController> _logger;
     private readonly VideoApplicationDbContext _dbContext;
     private readonly StorageWrapper _storageWrapper;
+    private readonly IClock _clock;
 
-    public UploadVideoController(ILogger<UploadVideoController> logger, VideoApplicationDbContext dbContext, StorageWrapper storageWrapper)
+    public UploadVideoController(ILogger<UploadVideoController> logger, VideoApplicationDbContext dbContext, StorageWrapper storageWrapper, IClock clock)
     {
         _logger = logger;
         _dbContext = dbContext;
         _storageWrapper = storageWrapper;
+        _clock = clock;
     }
 
 
@@ -71,11 +74,12 @@ public class UploadVideoController : ControllerBase
             {
                 Id = videoId,
                 ChannelId = channel.Id,
-                FileName = request.FileName,
+                FileName = Path.GetFileName(request.FileName),
                 Sha256Hash = request.Sha256Hash,
                 FileSize = request.FileSize,
                 Chunks = new List<UploadChunk>(),
                 StorageUploadId = uploadId,
+                UploadStartDate = _clock.GetCurrentInstant()
             };
 
             _dbContext.Uploads.Add(upload);
@@ -179,8 +183,17 @@ public class UploadVideoController : ControllerBase
             .ToList();
         await _storageWrapper.FinishUpload(new FinishUploadContext(storageKey, uploadInfo.StorageUploadId, eTags), cancellationToken);
 
+        var video = new Video()
+        {
+            Id = uploadInfo.Id,
+            ChannelId = uploadInfo.ChannelId,
+            OriginalFileName = uploadInfo.FileName,
+            UploadDate = uploadInfo.UploadStartDate,
+            Name = Path.GetFileNameWithoutExtension(uploadInfo.FileName),
+        };
 
         _dbContext.Uploads.Remove(uploadInfo);
+        _dbContext.Videos.Add(video);
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
     

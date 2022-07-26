@@ -1,4 +1,6 @@
-﻿namespace VideoApplication.Api.Database.Models;
+﻿using NodaTime;
+
+namespace VideoApplication.Api.Database.Models;
 
 public class Upload
 {
@@ -15,6 +17,8 @@ public class Upload
     public ICollection<UploadChunk> Chunks { get; set; } = null!;
 
     public string StorageUploadId { get; set; } = null!;
+    
+    public Instant UploadStartDate { get; set; }
 }
 
 public class UploadChunk
@@ -34,4 +38,15 @@ public class UploadChunk
 public class Video
 {
     public Guid Id { get; set; }
+    
+    public Guid ChannelId { get; set; }
+    public Channel Channel { get; set; } = null!;
+    
+    public string OriginalFileName { get; set; } = null!;
+
+    public Instant UploadDate { get; set; }
+    
+    public Instant? PublishDate { get; set; }
+
+    public string Name { get; set; } = null!;
 }

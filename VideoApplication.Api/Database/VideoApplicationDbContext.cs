@@ -13,6 +13,8 @@ public class VideoApplicationDbContext : IdentityDbContext<User, Role, Guid>
     public DbSet<Upload> Uploads { get; set; } = null!;
     public DbSet<UploadChunk> UploadChunks { get; set; } = null!;
 
+    public DbSet<Video> Videos { get; set; } = null!;
+
     public VideoApplicationDbContext(DbContextOptions options) : base(options)
     {
     }
@@ -51,6 +53,12 @@ public class VideoApplicationDbContext : IdentityDbContext<User, Role, Guid>
                 .HasForeignKey(u => u.ChannelId)
                 .HasPrincipalKey(c => c.Id)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            channel.HasMany(c => c.Videos)
+                .WithOne(v => v.Channel)
+                .HasForeignKey(v => v.ChannelId)
+                .HasPrincipalKey(c => c.Id)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Upload>(upload =>
@@ -69,6 +77,11 @@ public class VideoApplicationDbContext : IdentityDbContext<User, Role, Guid>
         modelBuilder.Entity<UploadChunk>(chunk =>
         {
             chunk.HasKey(c => c.Id);
+        });
+
+        modelBuilder.Entity<Video>(video =>
+        {
+            video.HasKey(v => v.Id);
         });
     }
 }

@@ -18,4 +18,5 @@ public class Channel
     public Instant CreatedAt { get; set; }
 
     public ICollection<Upload> Uploads { get; set; } = null!;
+    public ICollection<Video> Videos { get; set; } = null!;
 }
