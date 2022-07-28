@@ -2,7 +2,7 @@ import { dev } from '$app/env';
 import type { Readable } from 'svelte/store';
 import { get } from 'svelte/store';
 
-const apiDomain = dev ? 'https://localhost:5001' : 'NOT IMPLEMENTED';
+export const apiDomain = dev ? 'https://localhost:5001' : 'NOT IMPLEMENTED';
 
 export interface BaseRequestOptions {
 	customFetch?: typeof fetch;

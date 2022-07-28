@@ -117,8 +117,8 @@ public class UploadVideoController : ControllerBase
         }
 
 
-        var uploadChunk =
-            await _dbContext.UploadChunks.FirstOrDefaultAsync(c => c.UploadId == request.UploadId && c.Position == request.Position,
+        var uploadChunk = await _dbContext.UploadChunks
+                .FirstOrDefaultAsync(c => c.UploadId == request.UploadId && c.Position == request.Position,
                 cancellationToken);
 
         if (uploadChunk == null)
@@ -159,7 +159,7 @@ public class UploadVideoController : ControllerBase
     }
 
     [HttpPost("finish-upload")]
-    public async Task FinishUpload([FromBody] FinishUploadRequest request, CancellationToken cancellationToken = default)
+    public async Task<FinishUploadResponse> FinishUpload([FromBody] FinishUploadRequest request, CancellationToken cancellationToken = default)
     {
         var userId = User.GetId();
         var uploadInfo = await _dbContext.Uploads
@@ -170,6 +170,11 @@ public class UploadVideoController : ControllerBase
         if (uploadInfo == null)
         {
             throw new UploadNotFoundException($"The specified upload with id '{request.UploadId}' was not found");
+        }
+
+        if (uploadInfo.Chunks.Count == 0)
+        {
+            throw new NoChunksUploadedException();
         }
 
         if (uploadInfo.Chunks.Any(c => c.StorageETag == null))
@@ -195,6 +200,24 @@ public class UploadVideoController : ControllerBase
         _dbContext.Uploads.Remove(uploadInfo);
         _dbContext.Videos.Add(video);
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return new FinishUploadResponse(video.Id);
+    }
+
+    [HttpGet("{channelSlug}")]
+    public async Task<List<UploadItem>> GetCurrentUploads([FromRoute] string channelSlug, CancellationToken cancellationToken)
+    {
+        var userId = User.GetId();
+
+        var channel = await _dbContext.Channels.FirstOrDefaultAsync(c => c.IdentifierName == channelSlug && c.OwnerId == userId, cancellationToken);
+        if (channel == null)
+        {
+            throw new ChannelNotFoundException(channelSlug);
+        }
+
+        return await _dbContext.Uploads.Where(u => u.ChannelId == channel.Id)
+            .Select(u => new UploadItem(u.Id, u.FileName, u.Sha256Hash))
+            .ToListAsync(cancellationToken);
     }
     
     private StartVideoUploadResponse CreateStartResponse(Upload upload)
@@ -215,8 +238,15 @@ public record StartVideoUploadRequest(string Sha256Hash, Guid ChannelId, [FileEx
 
 public record StartVideoUploadResponse(Guid UploadId, List<UploadChunkResponse> UploadedChunks);
 
-public record UploadChunkRequest(Guid UploadId, [Range(0, 10000)] int Position, IFormFile Chunk);
+public record UploadChunkRequest(Guid UploadId, [Range(0, 10000)] int Position, string chunkSha256Hash, IFormFile Chunk);
 
 public record UploadChunkResponse(int Position, string Sha256Hash);
 
 public record FinishUploadRequest(Guid UploadId);
+
+public record FinishUploadResponse(Guid VideoId);
+
+public record UploadItem(Guid UploadId, string FileName, string Sha256);
+
+
+

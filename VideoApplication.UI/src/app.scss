@@ -21,17 +21,4 @@ body {
   --side-bar-hover-color: #{darken($light-background-color, 5%)};
   --side-bar-active-color: #{darken($light-background-color, 10%)};
   --side-bar-active-hover-color: #{darken($light-background-color, 13%)};
-
-  //margin: 0;
-  //overflow: hidden;
-  //background-color: var(--background-color);
-  //
-  //height: 100vh;
-  //width: 100vw;
-  //
-  //display: grid;
-  //grid-template-rows: $top-bar-height 1fr;
-  //grid-auto-columns: 15em 1fr;
-  //
-  //grid-template-areas: 'topbar topbar' 'nav content';
 }
