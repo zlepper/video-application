@@ -1,10 +1,32 @@
-interface HashFileProgress {
-	type: 'hash-file-progress';
+export interface UploadStateHashing {
+	type: 'hashing';
 	completed: number;
 	total: number;
 }
 
-export type WorkerEvent = HashFileProgress;
+export interface UploadStateUploading {
+	type: 'uploading';
+	completed: number;
+	total: number;
+}
+
+export interface UploadStateFinalizing {
+	type: 'finalizing';
+}
+
+export type UploadState = UploadStateHashing | UploadStateUploading | UploadStateFinalizing;
+
+export interface UploadFinished {
+	type: 'finished';
+	videoId: string;
+}
+
+export interface UploadError {
+	type: 'error';
+	message: string;
+}
+
+export type WorkerEvent = UploadState | UploadFinished | UploadError;
 
 export interface DoUploadRequest {
 	type: 'do-upload-request';

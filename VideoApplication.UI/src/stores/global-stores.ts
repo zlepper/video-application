@@ -17,5 +17,3 @@ function createContextStore<T>(initialValue: T): () => Writable<T> {
 }
 
 export const getMyChannels = createContextStore<Channel[]>([]);
-
-export const getMainSideBarExpandedState = createContextStore<boolean>(true);

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { getContext } from "svelte";
 	import type { Readable } from "svelte/store";
-	import { sideBarExpandedContextKey } from "./SideBar.svelte";
+	import { sideBarExpandedContextKey } from "./context-key";
 
 	export let title = '';
 	const sideBarExpanded = getContext<Readable<boolean>>(sideBarExpandedContextKey);

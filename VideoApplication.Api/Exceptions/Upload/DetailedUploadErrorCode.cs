@@ -4,4 +4,5 @@ public enum DetailedUploadErrorCode
 {
     UploadNotFound = 1,
     UploadChunksNotFinished = 2,
+    NoChunksUploaded = 3,
 }

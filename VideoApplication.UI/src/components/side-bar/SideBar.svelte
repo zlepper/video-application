@@ -1,10 +1,8 @@
-<script context="module" lang="ts">
-	export const sideBarExpandedContextKey = Symbol();
-</script>
 
 <script lang="ts">
 	import { setContext } from "svelte";
 	import { writable } from "svelte/store";
+	import { sideBarExpandedContextKey } from "./context-key";
 
 	export let expanded = true;
 

@@ -52,7 +52,7 @@ public class StorageWrapper
             UploadId = context.UploadId,
             Key = context.Key,
             BucketName = bucketName,
-            PartETags = partETags
+            PartETags = partETags,
         }, cancellationToken);
     }
 

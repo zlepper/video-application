@@ -9,11 +9,9 @@
 	import SideBarItemText from "./side-bar/SideBarItemText.svelte";
 
 	const channels = getMyChannels();
-
-	export let expanded: boolean;
 </script>
 
-<SideBar {expanded}>
+<SideBar>
 	<SideBarItem href="/">
 		<SideBarItemIcon>
 			<HouseIcon />

@@ -2,10 +2,20 @@ import { SHA256 } from '../../helpers/sha256';
 import { apiDomain } from '../http-client';
 import type { StartVideoUploadResponse } from '../upload-client';
 import type { DoUploadRequest } from './shared';
+import { sendUpdate } from './worker-utils';
+
+function reportUploadProgress(progress: number, total: number) {
+	sendUpdate({
+		type: 'uploading',
+		total,
+		completed: progress
+	});
+}
 
 export async function uploadChunks(request: DoUploadRequest, uploadInfo: StartVideoUploadResponse) {
 	let progress = 0;
-	const slices = calculateSlices(request.file.size);
+	const total = request.file.size;
+	const slices = calculateSlices(total);
 
 	for (let i = 0; i < slices.length; i++) {
 		const slice = slices[i];
@@ -17,12 +27,15 @@ export async function uploadChunks(request: DoUploadRequest, uploadInfo: StartVi
 		const existingChunk = uploadInfo.uploadedChunks.find((c) => c.position === i);
 		if (existingChunk && existingChunk.sha256Hash === chunkHash) {
 			progress += blob.size;
+			reportUploadProgress(progress, total);
 			continue;
 		}
 
+		const beforeBlobProgress = progress;
+
 		await uploadBlob(blob, request, uploadInfo, i, chunkHash, (event) => {
 			if (event.lengthComputable) {
-				console.log('upload progress: ', event, event.target);
+				reportUploadProgress(beforeBlobProgress + event.loaded, total);
 			}
 		});
 		progress += blob.size;
@@ -35,7 +48,7 @@ function uploadBlob(
 	uploadInfo: StartVideoUploadResponse,
 	position: number,
 	chunkHash: string,
-	progressListener: (progress: ProgressEvent) => void
+	progressListener: (progress: ProgressEvent<XMLHttpRequestEventTarget>) => void
 ): Promise<unknown> {
 	return new Promise((resolve, reject) => {
 		const httpRequest = new XMLHttpRequest();
@@ -52,7 +65,7 @@ function uploadBlob(
 		});
 
 		httpRequest.addEventListener('error', reject);
-		httpRequest.addEventListener('progress', progressListener);
+		httpRequest.upload.addEventListener('progress', progressListener);
 
 		httpRequest.open('POST', new URL('api/upload/upload-chunk', apiDomain), true);
 		httpRequest.setRequestHeader('accept', 'application/json');

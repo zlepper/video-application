@@ -11,7 +11,7 @@ export async function sha256(file: File): Promise<string> {
 	const reader = stream.getReader();
 
 	sendUpdate({
-		type: 'hash-file-progress',
+		type: 'hashing',
 		total,
 		completed
 	});
@@ -27,7 +27,7 @@ export async function sha256(file: File): Promise<string> {
 		sha256.update(slice);
 
 		sendUpdate({
-			type: 'hash-file-progress',
+			type: 'hashing',
 			total,
 			completed
 		});

@@ -1,8 +1,7 @@
 <script lang="ts">
-	import { onDestroy, setContext } from "svelte";
+	import { setContext } from "svelte";
 	import { writable } from "svelte/store";
 	import type { Channel } from "../../models/channel";
-	import { getMainSideBarExpandedState } from "../../stores/global-stores";
 	import FilmIcon from "../icons/FilmIcon.svelte";
 	import SideBar from "../side-bar/SideBar.svelte";
 	import SideBarItem from "../side-bar/SideBarItem.svelte";
@@ -20,14 +19,6 @@
 			channelStore.set(channel);
 		}
 	}
-
-	const mainSideBarState = getMainSideBarExpandedState();
-
-	mainSideBarState.set(false);
-
-	onDestroy(() => {
-		mainSideBarState.set(true);
-	});
 </script>
 
 <div class="page min-h-full">

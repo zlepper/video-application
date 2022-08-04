@@ -3,6 +3,7 @@ import { UploadClient } from '../upload-client';
 import { sha256 } from './sha256-file';
 import type { DoUploadRequest, WorkerMessage } from './shared';
 import { uploadChunks } from './upload-chunks';
+import { sendUpdate } from './worker-utils';
 
 async function doUpload(request: DoUploadRequest) {
 	console.log('do upload', request);
@@ -25,7 +26,15 @@ async function doUpload(request: DoUploadRequest) {
 
 	console.log('uploaded all chunks');
 
+	sendUpdate({
+		type: 'finalizing'
+	});
 	const videoId = await uploadClient.finishUpload(uploadInfo.uploadId);
+
+	sendUpdate({
+		type: 'finished',
+		videoId
+	});
 }
 
 addEventListener('message', async (ev: MessageEvent) => {
@@ -37,5 +46,9 @@ addEventListener('message', async (ev: MessageEvent) => {
 		}
 	} catch (e: any) {
 		console.error('exception in worker', e);
+		sendUpdate({
+			type: 'error',
+			message: e.message ?? e.toString()
+		});
 	}
 });

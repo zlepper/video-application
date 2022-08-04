@@ -1,17 +1,10 @@
 import type { Readable } from 'svelte/store';
 import { writable } from 'svelte/store';
-import type { WorkerEvent, WorkerMessage } from './shared';
-
-export interface UploadStateHashing {
-	type: 'hashing';
-	completed: number;
-	total: number;
-}
-
-export type UploadState = UploadStateHashing;
+import type { UploadFinished, UploadState, WorkerEvent, WorkerMessage } from './shared';
 
 export interface IUploadManager {
 	status: Readable<UploadState>;
+	finished: Promise<UploadFinished>;
 }
 
 export function uploadFile(file: File, channelId: string, accessKey: string): IUploadManager {
@@ -25,26 +18,30 @@ export function uploadFile(file: File, channelId: string, accessKey: string): IU
 
 	const statusStore = writable<UploadState>();
 
-	worker.addEventListener('message', (ev) => {
-		const data = ev.data as WorkerEvent;
+	const finishedPromise = new Promise<UploadFinished>((resolve, reject) => {
+		worker.addEventListener('message', (ev) => {
+			const data = ev.data as WorkerEvent;
 
-		if (data.type === 'hash-file-progress') {
-			statusStore.set({
-				type: 'hashing',
-				completed: data.completed,
-				total: data.total
-			});
-		}
-	});
+			if (data.type === 'uploading' || data.type === 'hashing' || data.type === 'finalizing') {
+				statusStore.set(data);
+			} else if (data.type === 'finished') {
+				resolve(data);
+				worker.terminate();
+			} else {
+				console.error('unknown worker event type', { data });
+			}
+		});
 
-	sendWorkerMessage({
-		type: 'do-upload-request',
-		file,
-		accessKey,
-		channelId
+		sendWorkerMessage({
+			type: 'do-upload-request',
+			file,
+			accessKey,
+			channelId
+		});
 	});
 
 	return {
-		status: statusStore
+		status: statusStore,
+		finished: finishedPromise
 	};
 }

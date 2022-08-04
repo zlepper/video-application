@@ -6,8 +6,6 @@ using VideoApplication.Api.Services;
 namespace VideoApplication.Api.Tests.Controllers;
 
 [TestFixture]
-[Parallelizable(ParallelScope.All)]
-[FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 public class UploadVideoControllerTests : TestBase<UploadVideoController>
 {
     private const string testFileName = "TestFiles/Sample-MP4-Video-File.mp4";
@@ -40,7 +38,7 @@ public class UploadVideoControllerTests : TestBase<UploadVideoController>
         {
             var formFile = new FormFile(uploadStream, 0, uploadStream.Length, "chunk", testFileName);
 
-            var chunkRequest = new UploadChunkRequest(initiateResponse.UploadId, 0, formFile);
+            var chunkRequest = new UploadChunkRequest(initiateResponse.UploadId, 0, hash, formFile);
             await Service.UploadChunk(chunkRequest);
         }
 
@@ -84,9 +82,11 @@ public class UploadVideoControllerTests : TestBase<UploadVideoController>
             var slice = fullFileContents[start..end];
 
             await using var memStream = new MemoryStream(slice, false);
+            var chunkHash = await HashStream(memStream);
+            memStream.Position = 0;
             var formFile = new FormFile(memStream, 0, slice.Length, "chunk", testFileName);
 
-            var chunkRequest = new UploadChunkRequest(initiateResponse.UploadId, iterationCount, formFile);
+            var chunkRequest = new UploadChunkRequest(initiateResponse.UploadId, iterationCount, chunkHash, formFile);
             await Service.UploadChunk(chunkRequest);
             iterationCount++;
         }
@@ -122,9 +122,11 @@ public class UploadVideoControllerTests : TestBase<UploadVideoController>
             var slice = fullFileContents[..chunkSize];
             firstChunkHash = Convert.ToHexString(SHA256.HashData(slice));
             await using var memStream = new MemoryStream(slice, false);
+            var chunkHash = await HashStream(memStream);
+            memStream.Position = 0;
             var formFile = new FormFile(memStream, 0, slice.Length, "chunk", testFileName);
 
-            var chunkRequest = new UploadChunkRequest(initiateResponse.UploadId, 0, formFile);
+            var chunkRequest = new UploadChunkRequest(initiateResponse.UploadId, 0, chunkHash, formFile);
             await Service.UploadChunk(chunkRequest);
         }
 
@@ -139,9 +141,11 @@ public class UploadVideoControllerTests : TestBase<UploadVideoController>
         {
             var slice = fullFileContents[chunkSize..];
             await using var memStream = new MemoryStream(slice, false);
+            var chunkHash = await HashStream(memStream);
+            memStream.Position = 0;
             var formFile = new FormFile(memStream, 0, slice.Length, "chunk", testFileName);
 
-            var chunkRequest = new UploadChunkRequest(initiateResponse.UploadId, 1, formFile);
+            var chunkRequest = new UploadChunkRequest(initiateResponse.UploadId, 1, chunkHash, formFile);
             await Service.UploadChunk(chunkRequest);
         }
         
@@ -175,9 +179,11 @@ public class UploadVideoControllerTests : TestBase<UploadVideoController>
         {
             var slice = fullFileContents[chunkSize..];
             await using var memStream = new MemoryStream(slice, false);
+            var chunkHash = await HashStream(memStream);
+            memStream.Position = 0;
             var formFile = new FormFile(memStream, 0, slice.Length, "chunk", testFileName);
 
-            var chunkRequest = new UploadChunkRequest(initiateResponse.UploadId, 1, formFile);
+            var chunkRequest = new UploadChunkRequest(initiateResponse.UploadId, 1, chunkHash, formFile);
             await Service.UploadChunk(chunkRequest);
         }
 
@@ -185,9 +191,11 @@ public class UploadVideoControllerTests : TestBase<UploadVideoController>
         {
             var slice = fullFileContents[..chunkSize];
             await using var memStream = new MemoryStream(slice, false);
+            var chunkHash = await HashStream(memStream);
+            memStream.Position = 0;
             var formFile = new FormFile(memStream, 0, slice.Length, "chunk", testFileName);
 
-            var chunkRequest = new UploadChunkRequest(initiateResponse.UploadId, 0, formFile);
+            var chunkRequest = new UploadChunkRequest(initiateResponse.UploadId, 0, chunkHash, formFile);
             await Service.UploadChunk(chunkRequest);
         }
         

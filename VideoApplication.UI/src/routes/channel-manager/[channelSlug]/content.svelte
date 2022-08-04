@@ -1,7 +1,7 @@
 <script context="module" lang="ts">
-	import type { Load, LoadOutput } from '@sveltejs/kit';
-	import { readable } from 'svelte/store';
-	import { UploadClient } from '../../../services/upload-client';
+	import type { Load, LoadOutput } from "@sveltejs/kit";
+	import { readable } from "svelte/store";
+	import { UploadClient } from "../../../services/upload-client";
 
 	// noinspection JSUnusedGlobalSymbols
 	export const load: Load = async ({ fetch, session, params }): Promise<LoadOutput> => {
@@ -36,18 +36,19 @@
 </script>
 
 <script lang="ts">
-	import { getContext, onDestroy } from "svelte";
+	import { getContext, onDestroy } from 'svelte';
 	import type { Readable } from 'svelte/store';
-	import { derived } from 'svelte/store';
-	import type { Channel } from "../../../models/channel";
+	import UploadProgress from '../../../components/channel-manager/UploadProgress.svelte';
+	import type { Channel } from '../../../models/channel';
 	import type { UploadItem } from '../../../services/upload-client';
 	import { session } from '$app/stores';
-	import type { IUploadManager } from '../../../services/upload/upload-file';
+	import type { UploadFinished } from '../../../services/upload/shared';
+	import type { UploadState } from '../../../services/upload/upload-file';
 	import { uploadFile } from '../../../services/upload/upload-file';
 
 	export let uploads: UploadItem[];
 
-	const channelStore = getContext<Readable<Channel>>('channel')
+	const channelStore = getContext<Readable<Channel>>('channel');
 
 	let selectedFiles: FileList | undefined;
 
@@ -59,9 +60,12 @@
 		})
 	);
 
-	let uploadManager: IUploadManager | null = null;
-
-	let progressPercent: Readable<number>;
+	let uploadStatus = readable<UploadState>({
+		type: 'hashing',
+		total: 1,
+		completed: 0,
+	});
+	let uploadPromise: Promise<UploadFinished>;
 
 	async function startFileUpload() {
 		if (selectedFiles.length !== 1) {
@@ -70,17 +74,25 @@
 
 		const file = selectedFiles.item(0);
 
-		uploadManager = uploadFile(file, $channelStore.id, accessKey);
-		progressPercent = derived(uploadManager.status, (s) => {
-			if (s?.type === 'hashing') {
-				return s.completed / s.total;
-			}
-			return 0;
-		});
+		const uploadManager = uploadFile(file, $channelStore.id, accessKey);
+
+		uploadStatus = uploadManager.status;
+
+		uploadPromise = uploadManager.finished;
+
+		const {videoId} = await uploadPromise;
+
+		console.log('video uploaded', {videoId})
+
+		uploads = [...uploads, {
+			uploadId: videoId,
+			fileName: file.name,
+			sha256: ''
+		}]
 	}
 </script>
 
-<div class="flex-column flex items-center justify-center min-h-full">
+<div class="flex-col flex items-center justify-center min-h-full">
 	<label
 		class="relative block w-96 border-2 border-gray-300 border-dashed rounded-lg p-12 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
 		for="upload-file-input"
@@ -103,10 +115,20 @@
 		<span class="mt-2 block text-sm font-medium text-gray-900">Upload video</span>
 	</label>
 
-	{#if uploadManager}
-		<div class="bg-gray-300 rounded-full overflow-hidden w-96">
-			<div class="h-2 bg-indigo-600 rounded-full" style="width: {$progressPercent * 100}%" />
-		</div>
+	{#if uploadPromise}
+		{#await uploadPromise}
+			<div class="flex flex-col mt-6 w-96">
+				<UploadProgress uploadStatus={$uploadStatus} />
+			</div>
+		{:catch err}
+			<div class="w-96 h-32 bg-red-700 text-gray-50">
+				<p>Something went wrong when uploading the video :(</p>
+				<details>
+					<summary>Details</summary>
+					<pre>{JSON.stringify(err)}</pre>
+				</details>
+			</div>
+		{/await}
 	{/if}
 </div>
 
@@ -119,4 +141,3 @@
 		type="file"
 	/>
 </div>
-

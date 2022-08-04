@@ -19,5 +19,3 @@ declare namespace App {
 	}
 	// interface Stuff {}
 }
-
-type ReturnType<T> = T extends (...args: infer TArgs) => infer TReturn ? TReturn : never;
