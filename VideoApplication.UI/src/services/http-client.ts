@@ -55,6 +55,19 @@ export interface FailedHttpResponse {
 
 export type HttpResponse<T = never> = SuccessfulHttpResponse<T> | FailedHttpResponse;
 
+export function parseResponse<TFrom, TTo>(
+	response: HttpResponse<TFrom>,
+	convert: (from: TFrom) => TTo
+): HttpResponse<TTo> {
+	if (response.success === true) {
+		return {
+			...response,
+			data: convert(response.data)
+		};
+	}
+	return response;
+}
+
 export class HttpClient {
 	private readonly _sessionValue: App.Session;
 

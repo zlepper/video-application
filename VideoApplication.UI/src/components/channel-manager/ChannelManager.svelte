@@ -11,6 +11,7 @@
 
 	$: {
 		if(channel) {
+			console.log('set channel store');
 			currentChannelStore.set(channel)
 		}
 	}
@@ -20,7 +21,7 @@
 	<SideBar>
 		<h2>{channel.displayName}</h2>
 
-		<SideBarItem href="/channel-manager/{channel.identifierName}/content">
+		<SideBarItem href="/channel-manager/{channel.identifierName}/content/videos">
 			<SideBarItemIcon>
 				<FilmIcon />
 			</SideBarItemIcon>

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using NodaTime;
 using VideoApplication.Api.Database;
 using VideoApplication.Api.Exceptions.Channels;
+using VideoApplication.Api.Exceptions.Video;
 using VideoApplication.Api.Extensions;
 
 namespace VideoApplication.Api.Controllers;
@@ -25,7 +26,7 @@ public class VideoController : ControllerBase
         _clock = clock;
     }
 
-    [HttpGet("{channelSlug}")]
+    [HttpGet("channel/{channelSlug}")]
     public async Task<List<VideoResponse>> GetChannelVideos([FromRoute] string channelSlug, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Getting channel '{@Slug}' videos", channelSlug);
@@ -50,6 +51,27 @@ public class VideoController : ControllerBase
             .OrderBy(v => v.UploadDate)
             .Select(v => new VideoResponse(v.Id, v.Name, v.UploadDate, v.PublishDate))
             .ToListAsync(cancellationToken);
+    }
+
+    [HttpGet("{videoId}")]
+    public async Task<VideoResponse> GetVideo(Guid videoId, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Getting video {@VideoId}'", videoId);
+
+        var video = await _dbContext.Videos.Include(v => v.Channel)
+            .FirstOrDefaultAsync(v => v.Id == videoId, cancellationToken);
+
+        if (video == null)
+        {
+            throw new VideoNotFoundException(videoId);
+        }
+
+        if (video.Channel.OwnerId == User.GetIdOrNull() || video.PublishDate < _clock.GetCurrentInstant())
+        {
+            return new VideoResponse(video.Id, video.Name, video.UploadDate, video.PublishDate);
+        }
+
+        throw new VideoNotFoundException(videoId);
     }
 }
 

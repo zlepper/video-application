@@ -1,24 +1,24 @@
 <script lang="ts">
   import { session } from "$app/stores";
-  import { getContext, onDestroy } from "svelte";
+  import { onDestroy } from "svelte";
   import { readable } from "svelte/store";
-  import type { Readable } from "svelte/types/runtime/store";
-  import type { Channel } from "../../models/channel";
   import type { UploadItem } from "../../services/upload-client";
   import type { UploadFinished, UploadState } from "../../services/upload/shared";
   import { uploadFile } from "../../services/upload/upload-file";
+  import { currentChannelStore } from "../../stores/global-stores";
   import UploadProgress from "./UploadProgress.svelte";
-
-  export let channel: Channel;
 
   export let uploads: UploadItem[];
 
-  const channelStore = getContext<Readable<Channel>>('channel');
+  console.log('get channel store');
+  const channelStore = currentChannelStore.get();
 
   let selectedFiles: FileList | undefined;
 
   let accessKey;
 
+  // The unsubscribe callback is being passed to `OnDestroy`,
+  // not the subscribe call itself
   onDestroy(
     session.subscribe((ses) => {
       accessKey = ses.accessKey;
