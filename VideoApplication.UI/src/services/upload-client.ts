@@ -1,25 +1,30 @@
 import type { Readable } from 'svelte/store';
-import type { BaseRequestOptions, HttpResponse } from './http-client';
+import type { BaseRequestOptions } from './http-client';
 import { HttpClient } from './http-client';
 
 export class UploadClient {
 	private _httpClient: HttpClient;
 
 	constructor(session: Readable<App.Session>) {
-		console.log('upload client initialized');
 		this._httpClient = new HttpClient(session);
 	}
 
 	public async getCurrentUploads(
 		channelSlug: string,
 		options?: BaseRequestOptions
-	): Promise<HttpResponse<UploadItem[]>> {
-		return await this._httpClient.doRequest<UploadItem[]>({
+	): Promise<UploadItem[]> {
+		const response = await this._httpClient.doRequest<UploadItem[]>({
 			...options,
 			withAuth: true,
 			method: 'GET',
 			path: `api/upload/${channelSlug}`
 		});
+
+		if (response.success === true) {
+			return response.data;
+		}
+
+		throw new Error('Failed to get current uploads: ' + JSON.stringify(response));
 	}
 
 	public async startUpload(

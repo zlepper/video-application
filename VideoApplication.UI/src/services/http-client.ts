@@ -56,7 +56,7 @@ export interface FailedHttpResponse {
 export type HttpResponse<T = never> = SuccessfulHttpResponse<T> | FailedHttpResponse;
 
 export class HttpClient {
-	private _sessionValue: App.Session;
+	private readonly _sessionValue: App.Session;
 
 	constructor(session: Readable<App.Session>) {
 		if (typeof session.subscribe !== 'function') {

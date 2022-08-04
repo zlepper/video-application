@@ -1,7 +1,6 @@
 <script lang="ts">
-	import { setContext } from "svelte";
-	import { writable } from "svelte/store";
 	import type { Channel } from "../../models/channel";
+	import { currentChannelStore } from "../../stores/global-stores";
 	import FilmIcon from "../icons/FilmIcon.svelte";
 	import SideBar from "../side-bar/SideBar.svelte";
 	import SideBarItem from "../side-bar/SideBarItem.svelte";
@@ -10,13 +9,9 @@
 
 	export let channel: Channel;
 
-	let channelStore = writable<Channel>()
-
-	setContext('channel', channelStore);
-
 	$: {
 		if(channel) {
-			channelStore.set(channel);
+			currentChannelStore.set(channel)
 		}
 	}
 </script>

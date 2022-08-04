@@ -1,0 +1,47 @@
+import type { Readable } from 'svelte/store';
+import type { Video } from '../models/video';
+import type { BaseRequestOptions } from './http-client';
+import { ErrorKind, HttpClient } from './http-client';
+
+export class VideoClient {
+	private _httpClient: HttpClient;
+
+	constructor(session: Readable<App.Session>) {
+		this._httpClient = new HttpClient(session);
+	}
+
+	public async getChannelVideos(
+		channelSlug: string,
+		options?: BaseRequestOptions
+	): Promise<Video[]> {
+		const response = await this._httpClient.doRequest<VideoResponse[]>({
+			...options,
+			method: 'GET',
+			path: `api/videos/${channelSlug}`,
+			withAuth: true
+		});
+
+		if (response.success === true) {
+			return response.data.map((v) => ({
+				id: v.id,
+				name: v.id,
+				uploadDate: new Date(v.uploadDate),
+				publishDate: v.publishDate ? new Date(v.publishDate) : null
+			}));
+		}
+
+		if (response.errorDetails.error === ErrorKind.NotFound) {
+			console.error('channel was not found', { channelSlug });
+			return [];
+		}
+
+		throw new Error('Failed to get videos for channel: ' + JSON.stringify(response));
+	}
+}
+
+interface VideoResponse {
+	id: string;
+	name: string;
+	uploadDate: string;
+	publishDate: string | null;
+}
