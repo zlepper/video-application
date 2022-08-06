@@ -1,9 +1,8 @@
 ﻿using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.Extensions.Options;
-using VideoApplication.Api.Models;
 
-namespace VideoApplication.Api.Services;
+namespace VideoApplication.Shared.Storage;
 
 public class StorageWrapper
 {
@@ -33,7 +32,6 @@ public class StorageWrapper
             UploadId = context.UploadId,
             PartNumber = context.partNumber,
             InputStream = context.content,
-            ChecksumSHA256 = Convert.ToBase64String(Convert.FromHexString(context.Sha256))
         }, cancellationToken);
 
         
@@ -53,6 +51,16 @@ public class StorageWrapper
             Key = context.Key,
             BucketName = bucketName,
             PartETags = partETags,
+        }, cancellationToken);
+    }
+
+    public async Task Upload(string key, Stream stream, CancellationToken cancellationToken)
+    {
+        await _s3Client.PutObjectAsync(new PutObjectRequest()
+        {
+            BucketName = bucketName,
+            InputStream = stream,
+            Key = key,
         }, cancellationToken);
     }
 
@@ -81,7 +89,7 @@ public enum CancelUploadResult
     MoreToGo
 }
 
-public record struct UploadPartContext(string Key, int partNumber, string UploadId, Stream content, string Sha256);
+public record struct UploadPartContext(string Key, int partNumber, string UploadId, Stream content);
 public record struct FinishUploadContext(string Key, string UploadId, List<S3PartETag> PartETags);
 
 public record struct S3PartETag(string ETag, int PartNumber);

@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using VideoApplication.Worker.ExternalPrograms;
 
@@ -57,12 +56,40 @@ public class FfprobeWrapper
         {
             var streamTitle = stream.Tags?.Title ?? $"{stream.CodecType}-stream-{stream.Index}";
             var streamType = Enum.Parse<StreamType>(stream.CodecType, true);
-            return new StreamInfo(streamTitle, streamType, stream.CodecName);
+            var frameRate = ParseFrameRate(stream.AvgFrameRate);
+            
+            return new StreamInfo(streamTitle, streamType, stream.CodecName, stream.Width, stream.Height, stream.Index, frameRate);
+        }).ToList();
+
+        streams = streams.Select((stream, index) =>
+        {
+            var streamTypeIndex = streams.Where((s, i) => s.StreamType == stream.StreamType && i < index).Count();
+
+            return stream with
+            {
+                StreamIndex = streamTypeIndex
+            };
         }).ToList();
 
         var duration = ffProbeResult.Format?.Duration ?? ffProbeResult.Streams.Max(s => s.Duration);
         
         return new VideoInfo(streams, TimeSpan.FromSeconds(duration));
+    }
+
+    private static int ParseFrameRate(string input)
+    {
+        var parts = input.Split('/', 2);
+        if (parts.Length != 2)
+        {
+            return 0;
+        }
+
+        if (parts[1] == "0")
+        {
+            return 0;
+        }
+
+        return (int) Math.Round(double.Parse(parts[0]) / double.Parse(parts[1]));
     }
 
 
@@ -93,41 +120,4 @@ public class FfprobeWrapper
     {
         public string? Title { get; set; }
     }
-}
-
-public class DoubleJsonConverter : JsonConverter<double>
-{
-    public override double Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        if (reader.TokenType == JsonTokenType.Number)
-        {
-            return reader.GetDouble();
-        }
-
-        if (reader.TokenType == JsonTokenType.String)
-        {
-            var s = reader.GetString()!;
-            if (double.TryParse(s, NumberStyles.Number, CultureInfo.InvariantCulture, out var d))
-            {
-                return d;
-            }
-        }
-
-        return default;
-    }
-
-    public override void Write(Utf8JsonWriter writer, double value, JsonSerializerOptions options)
-    {
-        writer.WriteNumberValue(value);
-    }
-}
-
-public record VideoInfo(List<StreamInfo> Streams, TimeSpan Duration);
-
-public record StreamInfo(string Title, StreamType StreamType, string CodecName);
-
-public enum StreamType
-{
-    Video,
-    Audio
 }

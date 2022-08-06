@@ -1,12 +1,17 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Hosting.Internal;
 using NUnit.Framework;
+using Rebus.Bus;
+using Rebus.TestHelpers;
+using VideoApplication.Shared.Storage;
 using VideoApplication.Worker.Ffmpeg;
 
 namespace VideoApplication.Worker.Tests.Ffmpeg;
 
 [TestFixture]
-// [Timeout(300000)]
+[Timeout(30000)]
 public class FfprobeWrapperTests
 {
     [Test]
@@ -14,6 +19,9 @@ public class FfprobeWrapperTests
     {
         await using var services = new ServiceCollection()
             .AddWorkerServices()
+            .AddSingleton<IHostApplicationLifetime, ApplicationLifetime>()
+            .AddSingleton<IBus, FakeBus>()
+            .AddS3Storage(new ConfigurationRoot(new List<IConfigurationProvider>()))
             .BuildServiceProvider(new ServiceProviderOptions()
             {
                 ValidateScopes = true,
@@ -33,9 +41,9 @@ public class FfprobeWrapperTests
             Assert.That(videoInfo.Duration, Is.EqualTo(TimeSpan.FromSeconds(10.35)));
             Assert.That(videoInfo.Streams, Is.EquivalentTo(new List<StreamInfo>
             {
-                new StreamInfo("video-stream-0", StreamType.Video, "h264"),
-                new StreamInfo("Desktop", StreamType.Audio, "aac"),
-                new StreamInfo("Mic", StreamType.Audio, "aac")
+                new StreamInfo("video-stream-0", StreamType.Video, "h264", 1920, 1080, 0, 60),
+                new StreamInfo("Desktop", StreamType.Audio, "aac", 0, 0, 1, 0),
+                new StreamInfo("Mic", StreamType.Audio, "aac", 0, 0, 2, 0)
             }));
         });
     }

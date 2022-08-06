@@ -1,6 +1,6 @@
 ﻿using Amazon.Runtime;
 
-namespace VideoApplication.Api.Services;
+namespace VideoApplication.Shared.Storage;
 
 public class AwsHttpClientFactory : HttpClientFactory
 {

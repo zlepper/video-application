@@ -1,14 +1,10 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using Microsoft.OpenApi.Models;
+﻿using Microsoft.OpenApi.Models;
 using NodaTime;
 using NodaTime.Serialization.SystemTextJson;
-using VideoApplication.Api.Database;
-using VideoApplication.Api.Database.Models;
 using VideoApplication.Api.Extensions;
 using VideoApplication.Api.Middleware;
 using VideoApplication.Shared.Setup;
+using VideoApplication.Shared.Storage;
 
 namespace VideoApplication.Api;
 
@@ -70,7 +66,7 @@ public class Startup
         services.AddVideoApplicationDbContext(connectionString, _hostEnvironment.IsDevelopment());
         services.AddS3Storage(_configuration);
         
-        services.ConfigureRebus(_configuration, RouteName.Api);
+        services.ConfigureRebus(_configuration.UseRebusRabbitMqTransport(RouteName.Api));
 
         services.AddApplicationServices();
 

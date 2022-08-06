@@ -10,4 +10,5 @@ public class ExternalProgram
     }
     
     public static ExternalProgram Ffprobe => new("ffprobe");
+    public static ExternalProgram Ffmpeg => new("ffmpeg");
 }

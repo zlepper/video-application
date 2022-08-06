@@ -6,10 +6,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Options;
 using NodaTime;
+using Rebus.Config;
 using VideoApplication.Api.Database;
 using VideoApplication.Api.Database.Models;
+using VideoApplication.Api.Handlers;
 using VideoApplication.Api.Models;
 using VideoApplication.Api.Services;
+using VideoApplication.Shared.Setup;
+using VideoApplication.Worker.Shared.Events;
 using SystemClock = NodaTime.SystemClock;
 
 namespace VideoApplication.Api.Extensions;
@@ -22,6 +26,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(typeof(ICache<>), typeof(DistributedCache<>));
 
         services.AddHttpClient();
+
+        services.AddRebusHandler<VideoTranscodeFinishedHandler>();
+        services.AddRebusSubscription<VideoTranscodingFinished>();
         
         return services;
     }
@@ -87,34 +94,6 @@ public static class ServiceCollectionExtensions
                 });
             }
         });
-        return services;
-    }
-
-    public static IServiceCollection AddS3Storage(this IServiceCollection services, IConfiguration configurationRoot)
-    {
-        services.Configure<StorageSettings>(configurationRoot.GetSection("Storage"));
-
-        services.AddSingleton<HttpClientFactory, AwsHttpClientFactory>();
-        services.AddSingleton<IAmazonS3>(sp =>
-        {
-            var httpClientFactory = sp.GetRequiredService<HttpClientFactory>();
-            
-            var storageConfig = sp.GetRequiredService<IOptions<StorageSettings>>();
-
-            var awsCredentials = new BasicAWSCredentials(storageConfig.Value.AccessKey, storageConfig.Value.SecretKey);
-            var config = new AmazonS3Config()
-            {
-                HttpClientFactory = httpClientFactory,
-                ServiceURL = storageConfig.Value.ServiceUrl,
-                ForcePathStyle = true,
-                
-            };
-            return new AmazonS3Client(awsCredentials, config);
-        });
-
-        services.AddScoped<StorageWrapper>();
-
-
         return services;
     }
 }

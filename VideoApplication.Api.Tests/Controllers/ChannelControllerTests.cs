@@ -25,7 +25,7 @@ public class ChannelControllerTests : TestBase<ChannelController>
         Assert.That(channel.IdentifierName, Is.EqualTo(request.IdentifierName));
         Assert.That(channel.DisplayName, Is.EqualTo(request.DisplayName));
 
-        var messagePublished = Bus.Events.OfType<MessagePublished<ChannelCreated>>().Single();
+        var messagePublished = Bus!.Events.OfType<MessagePublished<ChannelCreated>>().Single();
         Assert.That(messagePublished.EventMessage, Is.EqualTo(new ChannelCreated(channel.Id, channel.DisplayName, channel.IdentifierName, testUser.UserId)));
 
         Assert.That(async () =>

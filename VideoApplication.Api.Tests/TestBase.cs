@@ -15,7 +15,7 @@ using VideoApplication.Api.Controllers.Channels.Responses;
 using VideoApplication.Api.Database;
 using VideoApplication.Api.Extensions;
 using VideoApplication.Api.Models;
-using VideoApplication.Api.Services;
+using VideoApplication.Shared.Storage;
 
 namespace VideoApplication.Api.Tests;
 
@@ -25,9 +25,8 @@ public abstract class TestBase
     {
         var services = new ServiceCollection();
 
-        services.AddLogging(l => l.AddConsole());
-        services.AddSingleton<FakeBus>();
-        services.AddSingleton<IBus>(sp => sp.GetRequiredService<FakeBus>());
+        AddTestLogging(services);
+        ConfigureBus(services);
         services.AddCustomIdentity();
         services.AddApplicationServices();
         services.AddDistributedMemoryCache();
@@ -53,23 +52,43 @@ public abstract class TestBase
         return serviceProvider;
     }
 
+    protected static void AddTestLogging(ServiceCollection services)
+    {
+        services.AddLogging(l => l.AddSimpleConsole(f =>
+        {
+            f.IncludeScopes = true;
+            f.TimestampFormat = "hh:mm:ss ";
+        }));
+    }
+
+    protected virtual void ConfigureBus(ServiceCollection services)
+    {
+        services.AddSingleton<FakeBus>();
+        services.AddSingleton<IBus>(sp => sp.GetRequiredService<FakeBus>());
+    }
+
     private static string ConfigureTestStorage(ServiceCollection services)
     {
         var testBucketName = "utb-" + Guid.NewGuid();
+        return ConfigureTestStorage(services, testBucketName);
+    }
+
+    protected static string ConfigureTestStorage(ServiceCollection services, string bucketName)
+    {
         services.PostConfigure<StorageSettings>(s =>
         {
             s.AccessKey = "minioadmin";
             s.SecretKey = "minioadmin";
             s.ServiceUrl = "http://localhost:9000";
-            s.BucketName = testBucketName;
+            s.BucketName = bucketName;
         });
 
         services.AddS3Storage(new ConfigurationRoot(ArraySegment<IConfigurationProvider>.Empty));
 
-        return testBucketName;
+        return bucketName;
     }
 
-    protected FakeBus Bus => ServiceProvider.GetRequiredService<FakeBus>();
+    protected FakeBus? Bus => ServiceProvider.GetService<FakeBus>();
     
     protected virtual void AddMoreDependencies(IServiceCollection services) {}
 
@@ -83,7 +102,7 @@ public abstract class TestBase
     
     
     [SetUp]
-    public async Task Setup()
+    public virtual async Task Setup()
     {
         _serviceProvider = await CreateServiceProvider();
         _serviceScope = _serviceProvider.CreateScope();
@@ -101,7 +120,7 @@ public abstract class TestBase
     private record TestDatabaseName(string DatabaseName, string ConnectionString);
 
     [TearDown]
-    public async Task Teardown()
+    public virtual async Task Teardown()
     {
         if (_serviceScope != null)
         {
@@ -166,7 +185,7 @@ public abstract class TestBase<T> : TestBase where T : class
             if (ClearContextBeforeInvokingService)
             {
                 DbContext.ChangeTracker.Clear();
-                Bus.Clear();
+                Bus?.Clear();
             }
             
             return ServiceProvider.GetRequiredService<T>();

@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Rebus.Bus;
 using Rebus.Config;
 using Rebus.Retry.Simple;
 using Rebus.Routing.TypeBased;
@@ -11,58 +13,68 @@ namespace VideoApplication.Shared.Setup;
 
 public static class RebusSetup
 {
-    public static void ConfigureRebus(this IServiceCollection serviceCollection, IConfiguration configurationRoot,
-        RouteName routeName)
+    public static void ConfigureRebus(this IServiceCollection serviceCollection, IRebusTransportConfiguration transportConfiguration)
     {
-        var rebusSettings = configurationRoot.GetSection("Rebus").Get<RebusSettings>();
-
-        serviceCollection.AddRebus((c, sp) => c
-            .Logging(l => l.MicrosoftExtensionsLogging(sp.GetRequiredService<ILoggerFactory>()))
+        serviceCollection.AddRebus(c => c
             .Options(o =>
             {
                 o.EnableDiagnosticSources();
-                o.SimpleRetryStrategy($"{routeName}.error");
+                o.SimpleRetryStrategy($"{transportConfiguration.RouteName}.error");
+                o.SetBusName(transportConfiguration.RouteName);
             })
             .Routing(r => r.TypeBased()
                 .MapAssemblyOf<VideoWorkerShared>(RouteName.Worker)
                 .MapAssemblyOf<VideoApiShared>(RouteName.Api))
-            .Transport(t => t.UseRabbitMq($"amqp://{rebusSettings.Host}", routeName)
-                .CustomizeConnectionFactory(f =>
-                {
-                    f.UserName = rebusSettings.Username;
-                    f.Password = rebusSettings.Password;
-                    f.VirtualHost = rebusSettings.VHost;
-
-                    return f;
-                }))
-        );
+            .Transport(transportConfiguration.ConfigureTransport));
+        
+        serviceCollection.AddHostedService<BackgroundSubscriber>();
     }
+
+    public static IRebusTransportConfiguration UseRebusRabbitMqTransport(this IConfiguration configuration, RouteName routeName)
+    {
+        var rebusSettings = configuration.GetSection("Rebus").Get<RebusSettings>();
+        return new RebusRabbitMqTransportConfiguration(routeName, rebusSettings);
+    }
+
+    public static IServiceCollection AddRebusSubscription<T>(this IServiceCollection services)
+    {
+        return services.AddSingleton(new SubscribeTo(typeof(T)));
+    }
+
 }
 
-public class RebusSettings
+public record SubscribeTo(Type type);
+
+public class BackgroundSubscriber : BackgroundService
 {
-    public string Host { get; set; } = null!;
-    public string Username { get; set; } = null!;
-    public string Password { get; set; } = null!;
-    public string VHost { get; set; } = null!;
-}
+    private readonly IBus _bus;
+    private readonly IEnumerable<SubscribeTo> _subscriptions;
 
-public class RouteName
-{
-    public static RouteName Api = new RouteName("api");
-    public static RouteName Worker = new RouteName("worker");
+    private TaskCompletionSource _done = new TaskCompletionSource();
+    public Task Done => _done.Task;
 
-    internal readonly string Value;
-
-    internal RouteName(string value)
+    public BackgroundSubscriber(IBus bus, IEnumerable<SubscribeTo> subscriptions)
     {
-        Value = value;
+        _bus = bus;
+        _subscriptions = subscriptions;
     }
 
-    public override string ToString()
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        return Value;
-    }
+        try
+        {
+            foreach (var subscription in _subscriptions)
+            {
+                await _bus.Subscribe(subscription.type);
+            }
 
-    public static implicit operator string(RouteName r) => r.Value;
+            _done.SetResult();
+        }
+        catch (Exception e)
+        {
+            _done.SetException(e);
+            throw;
+        }
+
+    }
 }

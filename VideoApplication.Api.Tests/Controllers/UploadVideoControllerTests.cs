@@ -2,33 +2,42 @@
 using Microsoft.EntityFrameworkCore;
 using VideoApplication.Api.Controllers;
 using VideoApplication.Api.Services;
+using VideoApplication.Shared.Storage;
 
 namespace VideoApplication.Api.Tests.Controllers;
 
-[TestFixture]
-public class UploadVideoControllerTests : TestBase<UploadVideoController>
+internal class TestFileInfo
 {
-    private const string testFileName = "TestFiles/Sample-MP4-Video-File.mp4";
     
-    private async Task<string> GetTestFileHash(string name)
+    internal const string testFileName = "TestFiles/Sample-MP4-Video-File.mp4";
+    
+    internal static async Task<string> GetTestFileHash(string name)
     {
         await using var file = File.OpenRead(name);
         return await HashStream(file);
     }
 
-    private static async Task<string> HashStream(Stream file)
+    internal static async Task<string> HashStream(Stream file)
     {
         using var sha256 = SHA256.Create();
         var hash = await sha256.ComputeHashAsync(file);
         return Convert.ToHexString(hash);
     }
 
+}
+
+[TestFixture]
+public class UploadVideoControllerTests : TestBase<UploadVideoController>
+{
+
+    private string testFileName => TestFileInfo.testFileName;
+    
     [Test]
     public async Task UploadsFile()
     {
         var channel = await PrepareTestSystem();
         
-        var hash = await GetTestFileHash(testFileName);
+        var hash = await TestFileInfo.GetTestFileHash(testFileName);
         var initiateResponse = await Service.StartVideoUpload(new StartVideoUploadRequest(hash, channel.Id, testFileName,
             new FileInfo(testFileName).Length));
         
@@ -48,7 +57,7 @@ public class UploadVideoControllerTests : TestBase<UploadVideoController>
         await using var resultStream = await ServiceProvider.GetRequiredService<StorageWrapper>()
             .OpenReadStream(storagePath, CancellationToken.None);
 
-        var uploadedHash = await HashStream(resultStream);
+        var uploadedHash = await TestFileInfo.HashStream(resultStream);
         Assert.That(uploadedHash, Is.EqualTo(hash));
         
         Assert.That(DbContext.Uploads, Is.Empty);
@@ -66,7 +75,7 @@ public class UploadVideoControllerTests : TestBase<UploadVideoController>
     {
         var channel = await PrepareTestSystem();
         
-        var hash = await GetTestFileHash(testFileName);
+        var hash = await TestFileInfo.GetTestFileHash(testFileName);
         var initiateResponse = await Service.StartVideoUpload(new StartVideoUploadRequest(hash, channel.Id, testFileName,
             new FileInfo(testFileName).Length));
         
@@ -82,7 +91,7 @@ public class UploadVideoControllerTests : TestBase<UploadVideoController>
             var slice = fullFileContents[start..end];
 
             await using var memStream = new MemoryStream(slice, false);
-            var chunkHash = await HashStream(memStream);
+            var chunkHash = await TestFileInfo.HashStream(memStream);
             memStream.Position = 0;
             var formFile = new FormFile(memStream, 0, slice.Length, "chunk", testFileName);
 
@@ -97,7 +106,7 @@ public class UploadVideoControllerTests : TestBase<UploadVideoController>
         await using var resultStream = await ServiceProvider.GetRequiredService<StorageWrapper>()
             .OpenReadStream(storagePath, CancellationToken.None);
 
-        var uploadedHash = await HashStream(resultStream);
+        var uploadedHash = await TestFileInfo.HashStream(resultStream);
         Assert.That(uploadedHash, Is.EqualTo(hash));
     }
     
@@ -107,7 +116,7 @@ public class UploadVideoControllerTests : TestBase<UploadVideoController>
         const int chunkSize = 30 * 1024 * 1024;
         var channel = await PrepareTestSystem();
         
-        var hash = await GetTestFileHash(testFileName);
+        var hash = await TestFileInfo.GetTestFileHash(testFileName);
         var startVideoUploadRequest = new StartVideoUploadRequest(hash, channel.Id, testFileName,
             new FileInfo(testFileName).Length);
         var initiateResponse = await Service.StartVideoUpload(startVideoUploadRequest);
@@ -122,7 +131,7 @@ public class UploadVideoControllerTests : TestBase<UploadVideoController>
             var slice = fullFileContents[..chunkSize];
             firstChunkHash = Convert.ToHexString(SHA256.HashData(slice));
             await using var memStream = new MemoryStream(slice, false);
-            var chunkHash = await HashStream(memStream);
+            var chunkHash = await TestFileInfo.HashStream(memStream);
             memStream.Position = 0;
             var formFile = new FormFile(memStream, 0, slice.Length, "chunk", testFileName);
 
@@ -141,7 +150,7 @@ public class UploadVideoControllerTests : TestBase<UploadVideoController>
         {
             var slice = fullFileContents[chunkSize..];
             await using var memStream = new MemoryStream(slice, false);
-            var chunkHash = await HashStream(memStream);
+            var chunkHash = await TestFileInfo.HashStream(memStream);
             memStream.Position = 0;
             var formFile = new FormFile(memStream, 0, slice.Length, "chunk", testFileName);
 
@@ -156,7 +165,7 @@ public class UploadVideoControllerTests : TestBase<UploadVideoController>
         await using var resultStream = await ServiceProvider.GetRequiredService<StorageWrapper>()
             .OpenReadStream(storagePath, CancellationToken.None);
 
-        var uploadedHash = await HashStream(resultStream);
+        var uploadedHash = await TestFileInfo.HashStream(resultStream);
         Assert.That(uploadedHash, Is.EqualTo(hash));
     }
     
@@ -166,7 +175,7 @@ public class UploadVideoControllerTests : TestBase<UploadVideoController>
         const int chunkSize = 30 * 1024 * 1024;
         var channel = await PrepareTestSystem();
         
-        var hash = await GetTestFileHash(testFileName);
+        var hash = await TestFileInfo.GetTestFileHash(testFileName);
         var startVideoUploadRequest = new StartVideoUploadRequest(hash, channel.Id, testFileName,
             new FileInfo(testFileName).Length);
         var initiateResponse = await Service.StartVideoUpload(startVideoUploadRequest);
@@ -179,7 +188,7 @@ public class UploadVideoControllerTests : TestBase<UploadVideoController>
         {
             var slice = fullFileContents[chunkSize..];
             await using var memStream = new MemoryStream(slice, false);
-            var chunkHash = await HashStream(memStream);
+            var chunkHash = await TestFileInfo.HashStream(memStream);
             memStream.Position = 0;
             var formFile = new FormFile(memStream, 0, slice.Length, "chunk", testFileName);
 
@@ -191,7 +200,7 @@ public class UploadVideoControllerTests : TestBase<UploadVideoController>
         {
             var slice = fullFileContents[..chunkSize];
             await using var memStream = new MemoryStream(slice, false);
-            var chunkHash = await HashStream(memStream);
+            var chunkHash = await TestFileInfo.HashStream(memStream);
             memStream.Position = 0;
             var formFile = new FormFile(memStream, 0, slice.Length, "chunk", testFileName);
 
@@ -205,7 +214,7 @@ public class UploadVideoControllerTests : TestBase<UploadVideoController>
         await using var resultStream = await ServiceProvider.GetRequiredService<StorageWrapper>()
             .OpenReadStream(storagePath, CancellationToken.None);
 
-        var uploadedHash = await HashStream(resultStream);
+        var uploadedHash = await TestFileInfo.HashStream(resultStream);
         Assert.That(uploadedHash, Is.EqualTo(hash));
     }
 }

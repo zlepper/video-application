@@ -1,4 +1,4 @@
-﻿namespace VideoApplication.Api.Models;
+﻿namespace VideoApplication.Shared.Storage;
 
 public class StorageSettings
 {

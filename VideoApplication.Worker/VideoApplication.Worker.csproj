@@ -21,4 +21,9 @@
         </Content>
     </ItemGroup>
 
+
+    <ItemGroup>
+      <ProjectReference Include="..\VideoApplication.Shared\VideoApplication.Shared.csproj" />
+    </ItemGroup>
+
 </Project>

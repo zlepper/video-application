@@ -19,6 +19,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\VideoApplication.Api\VideoApplication.Api.csproj" />
+      <ProjectReference Include="..\VideoApplication.Worker\VideoApplication.Worker.csproj" />
     </ItemGroup>
 
     <ItemGroup>

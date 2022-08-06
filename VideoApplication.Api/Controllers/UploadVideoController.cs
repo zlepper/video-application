@@ -4,12 +4,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NodaTime;
+using Rebus.Bus;
 using VideoApplication.Api.Database;
 using VideoApplication.Api.Database.Models;
 using VideoApplication.Api.Exceptions.Channels;
 using VideoApplication.Api.Exceptions.Upload;
 using VideoApplication.Api.Extensions;
-using VideoApplication.Api.Services;
+using VideoApplication.Api.Shared.Events;
+using VideoApplication.Shared.Storage;
 
 namespace VideoApplication.Api.Controllers;
 
@@ -22,13 +24,15 @@ public class UploadVideoController : ControllerBase
     private readonly VideoApplicationDbContext _dbContext;
     private readonly StorageWrapper _storageWrapper;
     private readonly IClock _clock;
+    private readonly IBus _bus;
 
-    public UploadVideoController(ILogger<UploadVideoController> logger, VideoApplicationDbContext dbContext, StorageWrapper storageWrapper, IClock clock)
+    public UploadVideoController(ILogger<UploadVideoController> logger, VideoApplicationDbContext dbContext, StorageWrapper storageWrapper, IClock clock, IBus bus)
     {
         _logger = logger;
         _dbContext = dbContext;
         _storageWrapper = storageWrapper;
         _clock = clock;
+        _bus = bus;
     }
 
 
@@ -134,19 +138,19 @@ public class UploadVideoController : ControllerBase
         }
 
         uploadChunk.Sha256Hash = await Sha256File(request.Chunk, cancellationToken);
-        uploadChunk.StorageETag = await DoUpload(uploadInfo, request, uploadChunk.Sha256Hash, cancellationToken);
+        uploadChunk.StorageETag = await DoUpload(uploadInfo, request, cancellationToken);
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return CreateUploadChunkResponse(uploadChunk);
     }
 
-    private async Task<string> DoUpload(Upload uploadInfo, UploadChunkRequest request, string sha256,
+    private async Task<string> DoUpload(Upload uploadInfo, UploadChunkRequest request,
         CancellationToken cancellationToken)
     {
         var uploadKey = StorageStructureHelper.GetSourcePath(uploadInfo.ChannelId, uploadInfo.Id);
         await using var uploadStream = request.Chunk.OpenReadStream();
-        var uploadPartContext = new UploadPartContext(uploadKey, request.Position, uploadInfo.StorageUploadId, uploadStream, sha256);
+        var uploadPartContext = new UploadPartContext(uploadKey, request.Position, uploadInfo.StorageUploadId, uploadStream);
         return await _storageWrapper.UploadPart(uploadPartContext, cancellationToken);
     }
 
@@ -199,7 +203,10 @@ public class UploadVideoController : ControllerBase
 
         _dbContext.Uploads.Remove(uploadInfo);
         _dbContext.Videos.Add(video);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        
+        await _bus.Publish(new VideoUploadFinished(video.ChannelId, video.Id, Path.GetExtension(video.OriginalFileName).Substring(1)));
+        
+        await _dbContext.SaveChangesAsync(CancellationToken.None);
 
         return new FinishUploadResponse(video.Id);
     }
