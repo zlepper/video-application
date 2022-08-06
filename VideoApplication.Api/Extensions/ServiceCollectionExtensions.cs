@@ -29,6 +29,7 @@ public static class ServiceCollectionExtensions
 
         services.AddRebusHandler<VideoTranscodeFinishedHandler>();
         services.AddRebusSubscription<VideoTranscodingFinished>();
+        services.AddRebusSubscription<VideoTranscodingsIdentified>();
         
         return services;
     }

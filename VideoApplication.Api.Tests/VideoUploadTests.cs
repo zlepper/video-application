@@ -1,5 +1,7 @@
-﻿using Rebus.Handlers;
+﻿using Microsoft.EntityFrameworkCore;
+using Rebus.Handlers;
 using VideoApplication.Api.Controllers;
+using VideoApplication.Api.Database.Models;
 using VideoApplication.Api.Tests.Controllers;
 using VideoApplication.Worker.Shared.Events;
 
@@ -43,9 +45,20 @@ public class VideoUploadTests : IntegrationTestBase<UploadVideoController>
     [Test]
     public async Task ProcessesVideo()
     {
-        var video = await UploadVideo();
+        var uploadResponse = await UploadVideo();
 
         await _videoTranscodedTask.Task;
+        await Task.Delay(10);
+        DbContext.ChangeTracker.Clear();
+
+        var video = await DbContext.Videos
+            .Include(v => v.VideoTracks)
+            .Include(v => v.AudioTracks)
+            .FirstAsync(v => v.Id == uploadResponse.VideoId);
+        
+        Assert.That(video.ProcessingState, Is.EqualTo(VideoProcessingState.Ready));
+        Assert.That(video.VideoTracks, Has.Exactly(3).Items);
+        Assert.That(video.AudioTracks, Has.Exactly(1).Items);
     }
 
     internal class TranscodeFinishedDetector : IHandleMessages<VideoTranscodingFinished>

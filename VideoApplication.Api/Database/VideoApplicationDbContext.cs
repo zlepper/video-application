@@ -15,6 +15,9 @@ public class VideoApplicationDbContext : IdentityDbContext<User, Role, Guid>
 
     public DbSet<Video> Videos { get; set; } = null!;
 
+    public DbSet<VideoVideoTrack> VideoVideoTracks { get; set; } = null!;
+    public DbSet<VideoAudioTrack> VideoAudioTracks { get; set; } = null!;
+
     public VideoApplicationDbContext(DbContextOptions options) : base(options)
     {
     }
@@ -82,6 +85,28 @@ public class VideoApplicationDbContext : IdentityDbContext<User, Role, Guid>
         modelBuilder.Entity<Video>(video =>
         {
             video.HasKey(v => v.Id);
+
+            video.HasMany(v => v.VideoTracks)
+                .WithOne(t => t.Video)
+                .HasForeignKey(t => t.VideoId)
+                .HasPrincipalKey(v => v.Id)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            video.HasMany(v => v.AudioTracks)
+                .WithOne(t => t.Video)
+                .HasForeignKey(t => t.VideoId)
+                .HasPrincipalKey(v => v.Id)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<VideoVideoTrack>(videoTrack =>
+        {
+            videoTrack.HasKey(t => t.Id);
+        });
+        
+        modelBuilder.Entity<VideoAudioTrack>(audioTrack =>
+        {
+            audioTrack.HasKey(t => t.Id);
         });
     }
 }

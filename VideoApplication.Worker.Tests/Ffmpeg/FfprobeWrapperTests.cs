@@ -42,8 +42,8 @@ public class FfprobeWrapperTests
             Assert.That(videoInfo.Streams, Is.EquivalentTo(new List<StreamInfo>
             {
                 new StreamInfo("video-stream-0", StreamType.Video, "h264", 1920, 1080, 0, 60),
-                new StreamInfo("Desktop", StreamType.Audio, "aac", 0, 0, 1, 0),
-                new StreamInfo("Mic", StreamType.Audio, "aac", 0, 0, 2, 0)
+                new StreamInfo("Desktop", StreamType.Audio, "aac", 0, 0, 0, 0),
+                new StreamInfo("Mic", StreamType.Audio, "aac", 0, 0, 1, 0)
             }));
         });
     }

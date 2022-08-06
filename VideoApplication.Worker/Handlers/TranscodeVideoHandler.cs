@@ -71,7 +71,7 @@ public class TranscodeVideoHandler : IHandleMessages<VideoUploadFinished>, IHand
             transcodingsToCreate.Add(new QueuedVideoTranscoding(height, frameRate));
         }
         
-        await _bus.Publish(new VideoTranscodingsIdentified(message.ChannelId, message.VideoId, message.OriginalFileExtension, transcodingsToCreate));
+        await _bus.Publish(new VideoTranscodingsIdentified(message.ChannelId, message.VideoId, message.OriginalFileExtension, sourceFormats.Duration, transcodingsToCreate));
     }
     
     public async Task Handle(VideoTranscodingsIdentified message)

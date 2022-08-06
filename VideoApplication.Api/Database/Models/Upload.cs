@@ -49,4 +49,42 @@ public class Video
     public Instant? PublishDate { get; set; }
 
     public string Name { get; set; } = null!;
+    
+    public VideoProcessingState ProcessingState { get; set; }
+    
+    public TimeSpan Duration { get; set; }
+    
+    public TimeSpan ProcessedDuration { get; set; } 
+
+    public ICollection<VideoVideoTrack> VideoTracks { get; set; } = null!;
+    public ICollection<VideoAudioTrack> AudioTracks { get; set; } = null!;
+}
+
+public enum VideoProcessingState
+{
+    Processing,
+    Ready
+}
+
+public class VideoVideoTrack
+{
+    public Guid Id { get; set; }
+    
+    public Guid VideoId { get; set; }
+    public Video Video { get; set; } = null!;
+    
+    public int Height { get; set; }
+    public int FrameRate { get; set; }
+}
+
+public class VideoAudioTrack
+{
+    public Guid Id { get; set; }
+    
+    public Guid VideoId { get; set; }
+    public Video Video { get; set; } = null!;
+
+    public string Name { get; set; } = null!;
+    
+    public int Index { get; set; }
 }
