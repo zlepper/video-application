@@ -47,6 +47,16 @@ public class ExternalProgramRunner
         process.StartInfo.RedirectStandardError = true;
         
         process.Start();
+        process.PriorityClass = ProcessPriorityClass.BelowNormal;
+        await using var reg = cancellationToken.Register(() =>
+        {
+            // ReSharper disable AccessToDisposedClosure
+            if (!process.HasExited)
+            {
+                process.Kill(true);
+            }
+            // ReSharper restore AccessToDisposedClosure
+        });
         var errorTask = process.StandardError.ReadToEndAsync();
         var outputTask = processOutput(process.StandardOutput);
         await process.WaitForExitAsync(cancellationToken);

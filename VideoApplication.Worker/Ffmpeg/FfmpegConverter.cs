@@ -117,7 +117,9 @@ public class FfmpegConverter
         arguments.Add("-hls_segment_filename");
         arguments.Add(Path.Join(outputDirectory, "stream_%v/data%04d.ts"));
         arguments.Add("-master_pl_name");
-        arguments.Add(Path.Join(outputDirectory, "master.m3u8"));
+        // I'm not sure if this is intended, or a bug in FFMPEG, however if we specify the full path to the master file, then the path gets repeated twice, causing ffmpeg to fail to create
+        // the master file, but doesn't actual fail the command itself (So 2 problems, really)
+        arguments.Add("master.m3u8"); 
         arguments.Add("-var_stream_map");
         arguments.Add(BuildStreamMap(videoTranscodings, audioTranscodings));
         arguments.Add(Path.Join(outputDirectory, "stream_%v/info.m3u8"));

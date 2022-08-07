@@ -47,10 +47,9 @@ export class VideoClient {
 		return parseResponse(response, this.getVideoObject);
 	}
 
-	private getVideoObject(v: VideoResponse) {
+	private getVideoObject(v: VideoResponse): Video {
 		return {
-			id: v.id,
-			name: v.name,
+			...v,
 			uploadDate: new Date(v.uploadDate),
 			publishDate: v.publishDate ? new Date(v.publishDate) : null
 		};
@@ -62,4 +61,6 @@ interface VideoResponse {
 	name: string;
 	uploadDate: string;
 	publishDate: string | null;
+	channelId: string;
+	ownerId: string;
 }

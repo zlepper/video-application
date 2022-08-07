@@ -18,7 +18,12 @@ public static class ClaimsPrincipalExtensions
 
     public static Guid? GetIdOrNull(this ClaimsPrincipal principal)
     {
-        var id = GetClaimValue(principal, ClaimTypes.NameIdentifier);
+        var claim = principal.FindFirst(ClaimTypes.NameIdentifier);
+        if (claim == null)
+        {
+            return null;
+        }
+        var id = claim.Value;
 
         if (Guid.TryParse(id, out var guid))
         {

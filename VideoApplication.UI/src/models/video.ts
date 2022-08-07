@@ -3,4 +3,6 @@ export interface Video {
 	name: string;
 	uploadDate: Date;
 	publishDate: Date | null;
+	channelId: string;
+	ownerId: string;
 }

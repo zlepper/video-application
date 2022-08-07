@@ -1,4 +1,5 @@
-﻿using Amazon.Runtime;
+﻿using Amazon;
+using Amazon.Runtime;
 using Amazon.S3;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,7 +26,7 @@ public static class StorageServiceCollectionExtensions
                 HttpClientFactory = httpClientFactory,
                 ServiceURL = storageConfig.Value.ServiceUrl,
                 ForcePathStyle = true,
-                
+                RegionEndpoint = RegionEndpoint.USEast1
             };
             return new AmazonS3Client(awsCredentials, config);
         });

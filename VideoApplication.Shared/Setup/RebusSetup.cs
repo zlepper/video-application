@@ -32,7 +32,7 @@ public static class RebusSetup
 
     public static IRebusTransportConfiguration UseRebusRabbitMqTransport(this IConfiguration configuration, RouteName routeName)
     {
-        var rebusSettings = configuration.GetSection("Rebus").Get<RebusSettings>();
+        var rebusSettings = configuration.GetSection("Rebus").Get<RebusSettings>() ?? throw new Exception("Rebus configuration was not provided");
         return new RebusRabbitMqTransportConfiguration(routeName, rebusSettings);
     }
 

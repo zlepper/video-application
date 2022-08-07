@@ -1,14 +1,16 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Text;
+using Microsoft.EntityFrameworkCore;
 using Rebus.Handlers;
 using VideoApplication.Api.Controllers;
 using VideoApplication.Api.Database.Models;
 using VideoApplication.Api.Tests.Controllers;
+using VideoApplication.Shared.Storage;
 using VideoApplication.Worker.Shared.Events;
 
 namespace VideoApplication.Api.Tests;
 
 [TestFixture]
-[Timeout(120000)]
+// [Timeout(120000)]
 public class VideoUploadTests : IntegrationTestBase<UploadVideoController>
 {
     private TaskCompletionSource _videoTranscodedTask = new TaskCompletionSource();
@@ -59,6 +61,11 @@ public class VideoUploadTests : IntegrationTestBase<UploadVideoController>
         Assert.That(video.ProcessingState, Is.EqualTo(VideoProcessingState.Ready));
         Assert.That(video.VideoTracks, Has.Exactly(3).Items);
         Assert.That(video.AudioTracks, Has.Exactly(1).Items);
+
+        await using var stream = await ServiceProvider.GetRequiredService<StorageWrapper>().OpenReadStream(StorageStructureHelper.GetVideoStreamPath(video.ChannelId, video.Id, "master.m3u8"), CancellationToken.None);
+        using var reader = new StreamReader(stream, Encoding.UTF8);
+        var content = await reader.ReadToEndAsync();
+        Assert.That(content, Is.Not.Empty);
     }
 
     internal class TranscodeFinishedDetector : IHandleMessages<VideoTranscodingFinished>

@@ -56,6 +56,7 @@
 			<th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900" scope="col">
 				Comments
 			</th>
+			<th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900" scope="col">View link</th>
 			<th class="relative py-3.5 pl-3 pr-4 sm:pr-6" scope="col">
 				<span class="sr-only">Edit</span>
 			</th>
@@ -98,6 +99,13 @@
 				</td>
 				<td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">666.666</td>
 				<td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">777</td>
+				<td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+
+					<a class="text-indigo-600 hover:text-indigo-900" href="/video/{video.id}">
+						View
+						<span class="sr-only">, {video.name}</span>
+					</a>
+				</td>
 				<td
 					class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6"
 				>

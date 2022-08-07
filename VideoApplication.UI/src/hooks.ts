@@ -1,4 +1,7 @@
-import type { GetSession, Handle } from '@sveltejs/kit';
+import type { GetSession, Handle, RequestEvent } from '@sveltejs/kit';
+import { withCache } from './helpers/with-cache';
+import type { UserInfo } from './services/auth-client';
+import { apiDomain } from './services/http-client';
 import { removeScopedStores } from './stores/request-scoped-store';
 
 function parseCookie(cookie: string): Record<string, string> {
@@ -15,11 +18,30 @@ function parseCookie(cookie: string): Record<string, string> {
 	return result;
 }
 
+async function getUserInfo(accessKey: string): Promise<UserInfo | null> {
+	const rawResponse = await withCache(accessKey, () => {
+		return fetch(new URL('api/auth/who-am-i', apiDomain), {
+			headers: {
+				Authorization: `bearer ${accessKey}`
+			}
+		});
+	});
+
+	if (rawResponse.ok) {
+		return rawResponse.json();
+	}
+
+	return null;
+}
+
 let id = 0;
 
 // noinspection JSUnusedGlobalSymbols
 export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.storeSymbol = `request-scope-id-${++id}`;
+
+	const session = await _getSession(event);
+	Object.assign(event.locals, session);
 
 	const result = await resolve(event);
 
@@ -28,25 +50,39 @@ export const handle: Handle = async ({ event, resolve }) => {
 	return result;
 };
 
-// noinspection JSUnusedGlobalSymbols
-export const getSession: GetSession = async (event) => {
+async function _getSession(event: RequestEvent) {
 	const storeSymbol = event.locals.storeSymbol;
-	console.log('getting session', storeSymbol);
 	const cookie = event.request.headers.get('cookie') ?? '';
 
 	const cookies = parseCookie(cookie);
 
-	const { token, name } = cookies;
+	let { token } = cookies;
+	if (!token) {
+		const authHeader = event.request.headers.get('Authorization');
+		if (authHeader && authHeader.toLowerCase().startsWith('bearer')) {
+			[, token] = authHeader.split(' ');
+		}
+	}
 
-	if (token && name) {
-		return {
-			accessKey: token,
-			name,
-			storeSymbol
-		};
+	if (token) {
+		const userInfo = await getUserInfo(token);
+
+		if (userInfo) {
+			return {
+				accessKey: token,
+				name: userInfo.name,
+				userId: userInfo.userId,
+				storeSymbol
+			};
+		}
 	}
 
 	return {
 		storeSymbol
 	};
+}
+
+// noinspection JSUnusedGlobalSymbols
+export const getSession: GetSession = async (event): Promise<App.Session> => {
+	return event.locals;
 };

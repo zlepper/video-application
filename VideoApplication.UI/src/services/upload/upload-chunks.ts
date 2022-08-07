@@ -25,7 +25,7 @@ export async function uploadChunks(request: DoUploadRequest, uploadInfo: StartVi
 		const chunkHash = SHA256.hash(bytes);
 
 		const existingChunk = uploadInfo.uploadedChunks.find((c) => c.position === i);
-		if (existingChunk && existingChunk.sha256Hash === chunkHash) {
+		if (existingChunk && existingChunk.sha256Hash.toLowerCase() === chunkHash.toLowerCase()) {
 			progress += blob.size;
 			reportUploadProgress(progress, total);
 			continue;

@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Linq.Expressions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NodaTime;
 using VideoApplication.Api.Database;
+using VideoApplication.Api.Database.Models;
 using VideoApplication.Api.Exceptions.Channels;
 using VideoApplication.Api.Exceptions.Video;
 using VideoApplication.Api.Extensions;
@@ -49,30 +51,29 @@ public class VideoController : ControllerBase
 
         return await query
             .OrderBy(v => v.UploadDate)
-            .Select(v => new VideoResponse(v.Id, v.Name, v.UploadDate, v.PublishDate))
+            .Select(createVideoResponse)
             .ToListAsync(cancellationToken);
     }
+    
+    private static readonly Expression<Func<Video,VideoResponse>> createVideoResponse = v => new VideoResponse(v.Id, v.Name, v.UploadDate, v.PublishDate, v.ChannelId, v.Channel.OwnerId);
 
     [HttpGet("{videoId}")]
     public async Task<VideoResponse> GetVideo(Guid videoId, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Getting video {@VideoId}'", videoId);
 
-        var video = await _dbContext.Videos.Include(v => v.Channel)
-            .FirstOrDefaultAsync(v => v.Id == videoId, cancellationToken);
+        var video = await _dbContext.Videos
+            .Where(v => v.Id == videoId)
+            .Select(createVideoResponse)
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (video == null)
         {
             throw new VideoNotFoundException(videoId);
         }
 
-        if (video.Channel.OwnerId == User.GetIdOrNull() || video.PublishDate < _clock.GetCurrentInstant())
-        {
-            return new VideoResponse(video.Id, video.Name, video.UploadDate, video.PublishDate);
-        }
-
-        throw new VideoNotFoundException(videoId);
+        return video;
     }
 }
 
-public record VideoResponse(Guid Id, string Name, Instant UploadDate, Instant? PublishDate);
+public record VideoResponse(Guid Id, string Name, Instant UploadDate, Instant? PublishDate, Guid ChannelId, Guid OwnerId);
